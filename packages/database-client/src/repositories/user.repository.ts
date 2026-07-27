@@ -4,6 +4,8 @@ import { prisma } from '../client';
 export interface IUserRepository {
   findById(tenantId: string, id: string): Promise<User | null>;
   findByEmail(tenantId: string, email: string): Promise<User | null>;
+  findByResetToken(token: string): Promise<User | null>;
+  findByVerificationToken(token: string): Promise<User | null>;
   create(data: Prisma.UserCreateInput): Promise<User>;
   update(tenantId: string, id: string, data: Prisma.UserUpdateInput): Promise<User>;
   softDelete(tenantId: string, id: string): Promise<User>;
@@ -20,6 +22,20 @@ export class UserRepository implements IUserRepository {
   async findByEmail(tenantId: string, email: string) {
     return prisma.user.findFirst({
       where: { email, tenantId, deletedAt: null },
+      include: { role: true },
+    });
+  }
+
+  async findByResetToken(token: string) {
+    return prisma.user.findFirst({
+      where: { resetPasswordToken: token, deletedAt: null },
+      include: { role: true },
+    });
+  }
+
+  async findByVerificationToken(token: string) {
+    return prisma.user.findFirst({
+      where: { verificationToken: token, deletedAt: null },
       include: { role: true },
     });
   }

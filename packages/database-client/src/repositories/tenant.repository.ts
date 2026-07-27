@@ -9,7 +9,9 @@ export interface ITenantRepository {
   update(id: string, data: Prisma.TenantUpdateInput): Promise<Tenant & { configuration: TenantConfiguration | null }>;
   softDelete(id: string): Promise<Tenant>;
   findConfiguration(tenantId: string): Promise<TenantConfiguration | null>;
+  findConfigByTenantId(tenantId: string): Promise<TenantConfiguration | null>;
   upsertConfiguration(tenantId: string, data: Partial<Prisma.TenantConfigurationCreateWithoutTenantInput>): Promise<TenantConfiguration>;
+  updateConfig(tenantId: string, data: Prisma.TenantConfigurationUpdateInput): Promise<TenantConfiguration>;
 }
 
 export class TenantRepository implements ITenantRepository {
@@ -76,6 +78,12 @@ export class TenantRepository implements ITenantRepository {
     });
   }
 
+  async findConfigByTenantId(tenantId: string) {
+    return prisma.tenantConfiguration.findUnique({
+      where: { tenantId },
+    });
+  }
+
   async upsertConfiguration(
     tenantId: string,
     data: Partial<Prisma.TenantConfigurationCreateWithoutTenantInput>,
@@ -94,6 +102,13 @@ export class TenantRepository implements ITenantRepository {
         defaultLanguage: data.defaultLanguage || 'en',
         timeZone: data.timeZone || 'UTC',
       },
+    });
+  }
+
+  async updateConfig(tenantId: string, data: Prisma.TenantConfigurationUpdateInput) {
+    return prisma.tenantConfiguration.update({
+      where: { tenantId },
+      data,
     });
   }
 }

@@ -1,23 +1,34 @@
-export interface AuthenticatedUser {
-  userId: string;
-  tenantId: string;
-  email: string;
-  role: string;
-  permissions: string[];
-  authProvider: string;
-  firstName?: string;
-  lastName?: string;
-}
-
 export interface JwtPayload {
   sub: string;
+  email: string;
+  tenantId: string;
+  roleId: string;
+  roleName: string;
+  permissions: string[];
+}
+
+export interface UserIdentity {
+  id: string;
   tenantId: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: string;
   permissions: string[];
-  authProvider: string;
-  iss?: string;
-  aud?: string;
-  iat?: number;
-  exp?: number;
+}
+
+export interface AuthTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: string;
+  user: UserIdentity;
+}
+
+export interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  tenantId: string;
+  role: string;
+  permissions: string[];
 }
