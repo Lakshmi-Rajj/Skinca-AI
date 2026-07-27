@@ -6,11 +6,12 @@ import { EveningRoutineBuilder } from './builders/evening-routine.builder';
 import { CustomerModule } from '../customer/customer.module';
 import { RecommendationModule } from '../recommendation/recommendation.module';
 import { AIExplanationModule } from '../ai-explanation/ai-explanation.module';
+import { RoutineRepository } from '@platform/database-client';
 
 @Module({
   imports: [CustomerModule, RecommendationModule, AIExplanationModule],
   controllers: [RoutineController],
-  providers: [RoutineService, MorningRoutineBuilder, EveningRoutineBuilder],
-  exports: [RoutineService, MorningRoutineBuilder, EveningRoutineBuilder],
+  providers: [RoutineRepository, RoutineService, MorningRoutineBuilder, EveningRoutineBuilder],
+  exports: [RoutineRepository, RoutineService, MorningRoutineBuilder, EveningRoutineBuilder],
 })
 export class RoutineModule {}

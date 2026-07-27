@@ -20,10 +20,11 @@ export interface PaginatedProductsResult {
 
 @Injectable()
 export class ProductService {
-  private productRepository = new ProductRepository();
-  private categoryRepository = new CategoryRepository();
-
-  constructor(private auditService: AuditService) {}
+  constructor(
+    private productRepository: ProductRepository,
+    private categoryRepository: CategoryRepository,
+    private auditService: AuditService,
+  ) {}
 
   async findAll(tenantId: string, query: ProductQueryDto): Promise<PaginatedProductsResult> {
     const page = query.page || 1;

@@ -12,9 +12,8 @@ import { SkinTypeEnum } from '../recommendation/dto/recommendation-request.dto';
 
 @Injectable()
 export class RoutineService {
-  private routineRepo = new RoutineRepository();
-
   constructor(
+    private routineRepo: RoutineRepository,
     private customerService: CustomerService,
     private recommendationService: RecommendationService,
     private aiExplanationService: AIExplanationService,
@@ -26,7 +25,6 @@ export class RoutineService {
     tenantId: string,
     dto: GenerateRoutineRequestDto,
   ): Promise<PersonalizedRoutineResponseDto> {
-    // 1. Service boundary: Fetch customer profile
     const customer = await this.customerService.getCustomerById(tenantId, dto.customerId);
     const activeSkinProfile = await this.customerService.getCurrentSkinProfile(tenantId, dto.customerId);
 
@@ -35,14 +33,12 @@ export class RoutineService {
       ? (skinTypeStr as SkinTypeEnum)
       : SkinTypeEnum.COMBINATION;
 
-    // 2. Service boundary: Execute deterministic recommendation engine
     const recommendationResult = await this.recommendationService.generateRecommendation(tenantId, {
       skinType: skinTypeEnum,
       skinConcerns: activeSkinProfile.concerns || [],
       isPregnant: activeSkinProfile.sensitivity === 'PREGNANT',
     });
 
-    // 3. Assemble Builders
     const morningSteps = this.morningBuilder.buildMorningRoutine(
       recommendationResult.recommendedProducts,
       dto.routineType,
@@ -52,10 +48,8 @@ export class RoutineService {
       dto.routineType,
     );
 
-    // 4. Validate Routine Structure
     const warnings = validateRoutineStructure(morningSteps, eveningSteps);
 
-    // 5. Service boundary: Generate AI explanations
     const explanation = await this.aiExplanationService.generateExplanation(tenantId, {
       recommendationResult,
       customerProfile: {
@@ -65,7 +59,6 @@ export class RoutineService {
       language: dto.language || 'en',
     });
 
-    // 6. Record Routine History in database
     const savedRoutine = await this.routineRepo.create({
       tenantId,
       customerId: dto.customerId,

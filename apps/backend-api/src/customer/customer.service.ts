@@ -14,10 +14,12 @@ import { validateSkinProfileData } from './validators/profile.validator';
 
 @Injectable()
 export class CustomerService {
-  private customerRepo = new CustomerRepository();
-  private profileRepo = new SkinProfileRepository();
-  private assessmentRepo = new AssessmentRepository();
-  private historyRepo = new RecommendationHistoryRepository();
+  constructor(
+    private customerRepo: CustomerRepository,
+    private profileRepo: SkinProfileRepository,
+    private assessmentRepo: AssessmentRepository,
+    private historyRepo: RecommendationHistoryRepository,
+  ) {}
 
   async createCustomer(tenantId: string, dto: CreateCustomerDto): Promise<any> {
     return this.customerRepo.create({
