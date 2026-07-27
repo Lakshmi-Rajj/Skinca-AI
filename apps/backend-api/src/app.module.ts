@@ -8,6 +8,7 @@ import { TenantsModule } from './tenants/tenants.module';
 import { UsersModule } from './users/users.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { IngredientModule } from './ingredient/ingredient.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 import { WidgetModule } from './widget/widget.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
@@ -25,6 +26,7 @@ import { RequestIdMiddleware } from './common/middlewares/request-id.middleware'
     UsersModule,
     CatalogModule,
     IngredientModule,
+    KnowledgeModule,
     WidgetModule,
     AdminModule,
     HealthModule,
