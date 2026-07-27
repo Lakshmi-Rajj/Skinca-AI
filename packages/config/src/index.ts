@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './recommendation-weights.config';
+
 export const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'staging', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),

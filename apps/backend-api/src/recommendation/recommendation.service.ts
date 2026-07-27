@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { KnowledgeService } from '../knowledge/services/knowledge.service';
 import { RecommendationRequestDto } from './dto/recommendation-request.dto';
 import {
   RecommendationResponseDto,
@@ -7,104 +6,83 @@ import {
   RoutineStep,
   RuleEvaluationItem,
 } from './dto/recommendation-response.dto';
-import { isPregnancySafe, isConflictingActivePair } from '@platform/dermatological-rules';
+import { CandidateProductGenerator } from './generator/candidate-product-generator';
+import { RECOMMENDATION_WEIGHTS_CONFIG } from '@platform/config';
+import { RecommendationContext, IRule } from './interfaces/recommendation-context.interface';
+import { SkinTypeRule } from './rules/skin-type.rule';
+import { SkinConcernRule } from './rules/skin-concern.rule';
+import { PregnancySafetyRule } from './rules/pregnancy-safety.rule';
+import { AllergyRule } from './rules/allergy.rule';
+import { RoutineConflictRule } from './rules/routine-conflict.rule';
 
 @Injectable()
 export class RecommendationService {
-  constructor(private knowledgeService: KnowledgeService) {}
+  private rules: IRule[] = [
+    new SkinTypeRule(),
+    new SkinConcernRule(),
+    new PregnancySafetyRule(),
+    new AllergyRule(),
+    new RoutineConflictRule(),
+  ];
+
+  constructor(private candidateGenerator: CandidateProductGenerator) {}
 
   async generateRecommendation(
     tenantId: string,
     dto: RecommendationRequestDto,
   ): Promise<RecommendationResponseDto> {
-    // Step 1: Consume Knowledge Service to retrieve candidate products
-    let candidateProducts = dto.isPregnant
-      ? await this.knowledgeService.getPregnancySafeProducts(tenantId)
-      : await this.knowledgeService.getFragranceFreeProducts(tenantId);
+    const candidates = await this.candidateGenerator.generateCandidates(tenantId, dto);
 
-    if (candidateProducts.length === 0) {
-      const { items } = await (this.knowledgeService as any).productRepository.findAll(tenantId, { limit: 50 });
-      candidateProducts = items;
-    }
+    const context: RecommendationContext = {
+      tenantId,
+      profile: dto,
+      weightsConfig: RECOMMENDATION_WEIGHTS_CONFIG,
+    };
 
     const evaluatedProducts: ProductRecommendationItem[] = [];
     const avoidedProducts: { productId: string; name: string; reason: string }[] = [];
     const ruleLogs: RuleEvaluationItem[] = [];
 
-    // Step 2: Deterministic 10-stage Rule Pipeline Evaluation over candidate products
-    for (const product of candidateProducts) {
-      let score = 50.0;
+    for (const product of candidates) {
+      let score = context.weightsConfig.baselineScore;
       const matchedRules: string[] = [];
       const rejectedRules: string[] = [];
       const warnings: string[] = [];
 
-      // 1. Skin Type Rule
-      matchedRules.push(`SKIN_TYPE_MATCH:${dto.skinType}`);
-      score += 15.0;
-      ruleLogs.push({ ruleName: 'Skin Type Rule', status: 'PASSED', message: `Product matches ${dto.skinType} skin profile`, weightDelta: 15.0 });
+      for (const rule of this.rules) {
+        const result = rule.evaluate(product, context);
+        score += result.scoreDelta;
 
-      // 2. Skin Concern Rule
-      if (dto.skinConcerns && dto.skinConcerns.length > 0) {
-        let concernMatches = 0;
-        for (const concern of dto.skinConcerns) {
-          if (
-            product.name.toLowerCase().includes(concern.toLowerCase()) ||
-            (product.shortDescription && product.shortDescription.toLowerCase().includes(concern.toLowerCase()))
-          ) {
-            concernMatches++;
+        if (result.passed) {
+          if (result.scoreDelta > 0) {
+            matchedRules.push(result.message);
           }
-        }
-        if (concernMatches > 0) {
-          score += concernMatches * 10.0;
-          matchedRules.push(`SKIN_CONCERN_MATCH:${concernMatches}_MATCHES`);
-          ruleLogs.push({ ruleName: 'Skin Concern Rule', status: 'PASSED', message: `Matches ${concernMatches} target skin concerns`, weightDelta: concernMatches * 10.0 });
-        }
-      }
-
-      // 3. Pregnancy Safety Rule
-      if (dto.isPregnant) {
-        const isSafe = product.formulation.every((f: any) => isPregnancySafe(f.ingredient.inciName));
-        if (!isSafe) {
-          rejectedRules.push('PREGNANCY_SAFETY_VIOLATION');
-          warnings.push('Contains active ingredients contraindicated during pregnancy.');
-          score -= 100.0;
-          ruleLogs.push({ ruleName: 'Pregnancy Safety Rule', status: 'FAILED', message: 'Contains pregnancy contraindicated actives', weightDelta: -100.0 });
-        }
-      }
-
-      // 4. Allergy Rule
-      if (dto.allergies && dto.allergies.length > 0) {
-        for (const allergy of dto.allergies) {
-          const allergenFound = product.formulation.some(
-            (f: any) =>
-              f.ingredient.inciName.toLowerCase().includes(allergy.toLowerCase()) ||
-              f.ingredient.displayName.toLowerCase().includes(allergy.toLowerCase()),
-          );
-          if (allergenFound) {
-            rejectedRules.push(`ALLERGY_VIOLATION:${allergy}`);
-            warnings.push(`Contains potential allergen ${allergy}.`);
-            score -= 100.0;
-            ruleLogs.push({ ruleName: 'Allergy Rule', status: 'FAILED', message: `Contains allergen ${allergy}`, weightDelta: -100.0 });
+          ruleLogs.push({
+            ruleName: result.ruleName,
+            status: result.warning ? 'WARNED' : 'PASSED',
+            message: result.message,
+            weightDelta: result.scoreDelta,
+          });
+        } else {
+          if (result.rejectionReason) {
+            rejectedRules.push(result.rejectionReason);
           }
+          ruleLogs.push({
+            ruleName: result.ruleName,
+            status: 'FAILED',
+            message: result.message,
+            weightDelta: result.scoreDelta,
+          });
         }
-      }
 
-      // 5. Existing Routine Conflict Rule
-      if (dto.existingRoutineActives && dto.existingRoutineActives.length > 0) {
-        for (const active of dto.existingRoutineActives) {
-          for (const f of product.formulation) {
-            if (isConflictingActivePair(active, f.ingredient.inciName)) {
-              warnings.push(`Conflict warning: ${active} + ${f.ingredient.displayName}`);
-              score -= 20.0;
-              ruleLogs.push({ ruleName: 'Existing Routine Conflict Rule', status: 'WARNED', message: `Active conflict between ${active} and ${f.ingredient.displayName}`, weightDelta: -20.0 });
-            }
-          }
+        if (result.warning) {
+          warnings.push(result.warning);
         }
       }
 
       const finalScore = Math.max(0, Math.min(100, Math.round(score)));
 
-      if (rejectedRules.length > 0 || finalScore < 30) {
+      if (rejectedRules.length > 0 || finalScore < context.weightsConfig.minimumEligibleScoreThreshold) {
         avoidedProducts.push({
           productId: product.id,
           name: product.name,
@@ -127,10 +105,8 @@ export class RecommendationService {
       }
     }
 
-    // Step 3: Deterministic Ranking Engine (Score Descending, Name Ascending for tie-breaking)
     evaluatedProducts.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 
-    // Step 4: Routine Builder (Morning / Evening Routine Allocation)
     const morningRoutine: RoutineStep[] = [];
     const eveningRoutine: RoutineStep[] = [];
 
@@ -206,7 +182,7 @@ export class RecommendationService {
     return {
       morningRoutine,
       eveningRoutine,
-      recommendedProducts: evaluatedProducts.slice(0, 10),
+      recommendedProducts: evaluatedProducts.slice(0, context.weightsConfig.maxRecommendedProducts),
       avoidedProducts,
       ruleEvaluationSummary: {
         totalRulesEvaluated: ruleLogs.length,
