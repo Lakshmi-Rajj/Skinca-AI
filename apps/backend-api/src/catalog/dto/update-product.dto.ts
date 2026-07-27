@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProductStatus } from '@platform/database-client';
-import { CreateProductImageDto } from './create-product.dto';
+import { ProductImageDto } from './create-product.dto';
 
 export class UpdateProductDto {
   @ApiProperty({ example: 'Hydrating Hyaluronic Serum 50ml', required: false })
@@ -72,10 +72,10 @@ export class UpdateProductDto {
   @MaxLength(3)
   currency?: string;
 
-  @ApiProperty({ type: [CreateProductImageDto], required: false })
+  @ApiProperty({ type: [ProductImageDto], required: false })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateProductImageDto)
+  @Type(() => ProductImageDto)
   @IsOptional()
-  images?: CreateProductImageDto[];
+  images?: ProductImageDto[];
 }

@@ -5,3 +5,5 @@ export * from './audit-log.repository';
 export * from './product.repository';
 export * from './category.repository';
 export * from './ingredient.repository';
+export * from './brand.repository';
+export * from './claim.repository';

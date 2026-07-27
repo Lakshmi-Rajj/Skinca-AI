@@ -1,4 +1,14 @@
-import { Product, ProductImage, ProductIngredient, Ingredient, Prisma, ProductStatus } from '@prisma/client';
+import {
+  Product,
+  ProductImage,
+  ProductIngredient,
+  Ingredient,
+  ProductVariant,
+  Brand,
+  ProductClaim,
+  Prisma,
+  ProductStatus,
+} from '@prisma/client';
 import { prisma } from '../client';
 
 export interface ProductQueryOptions {
@@ -7,12 +17,18 @@ export interface ProductQueryOptions {
   search?: string;
   status?: ProductStatus;
   categoryId?: string;
+  brandId?: string;
+  claimId?: string;
+  ingredientId?: string;
   sortBy?: 'name' | 'createdAt' | 'price';
   sortOrder?: 'asc' | 'desc';
 }
 
 export type ProductWithDetails = Product & {
   images: ProductImage[];
+  variants: ProductVariant[];
+  claims: ProductClaim[];
+  brand: Brand | null;
   category: { id: string; name: string; slug: string };
   formulation: (ProductIngredient & { ingredient: Ingredient })[];
 };
@@ -36,11 +52,23 @@ export class ProductRepository {
       where.categoryId = options.categoryId;
     }
 
+    if (options.brandId) {
+      where.brandId = options.brandId;
+    }
+
+    if (options.claimId) {
+      where.claims = { some: { id: options.claimId } };
+    }
+
+    if (options.ingredientId) {
+      where.formulation = { some: { ingredientId: options.ingredientId } };
+    }
+
     if (options.search) {
       where.OR = [
         { name: { contains: options.search, mode: 'insensitive' } },
         { sku: { contains: options.search, mode: 'insensitive' } },
-        { brand: { contains: options.search, mode: 'insensitive' } },
+        { brandName: { contains: options.search, mode: 'insensitive' } },
       ];
     }
 
@@ -54,6 +82,9 @@ export class ProductRepository {
         where,
         include: {
           images: { orderBy: { displayOrder: 'asc' } },
+          variants: true,
+          claims: true,
+          brand: true,
           category: { select: { id: true, name: true, slug: true } },
           formulation: { include: { ingredient: true }, orderBy: { displayOrder: 'asc' } },
         },
@@ -72,6 +103,9 @@ export class ProductRepository {
       where: { id, tenantId, deletedAt: null },
       include: {
         images: { orderBy: { displayOrder: 'asc' } },
+        variants: true,
+        claims: true,
+        brand: true,
         category: { select: { id: true, name: true, slug: true } },
         formulation: { include: { ingredient: true }, orderBy: { displayOrder: 'asc' } },
       },
@@ -95,6 +129,9 @@ export class ProductRepository {
       data,
       include: {
         images: { orderBy: { displayOrder: 'asc' } },
+        variants: true,
+        claims: true,
+        brand: true,
         category: { select: { id: true, name: true, slug: true } },
         formulation: { include: { ingredient: true }, orderBy: { displayOrder: 'asc' } },
       },
@@ -107,6 +144,9 @@ export class ProductRepository {
       data,
       include: {
         images: { orderBy: { displayOrder: 'asc' } },
+        variants: true,
+        claims: true,
+        brand: true,
         category: { select: { id: true, name: true, slug: true } },
         formulation: { include: { ingredient: true }, orderBy: { displayOrder: 'asc' } },
       },

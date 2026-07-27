@@ -1,106 +1,135 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  IsUrl,
-  MaxLength,
-  Min,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ProductStatus } from '@platform/database-client';
 
-export class CreateProductImageDto {
-  @ApiProperty({ example: 'https://cdn.acmeglow.com/products/hydrating-serum-1.jpg' })
-  @IsUrl()
+export class ProductImageDto {
+  @ApiProperty({ example: 'https://cdn.platform.com/products/cleanser.png' })
+  @IsString()
   @IsNotEmpty()
   url!: string;
 
-  @ApiProperty({ example: 'Front bottle view of Hydrating Serum', required: false })
+  @ApiPropertyOptional({ example: 'Gentle Cleanser bottle front view' })
   @IsString()
   @IsOptional()
   altText?: string;
 
-  @ApiProperty({ example: 0, default: 0, required: false })
-  @IsInt()
+  @ApiPropertyOptional({ example: 0 })
+  @IsNumber()
   @IsOptional()
   displayOrder?: number;
 
-  @ApiProperty({ example: true, default: false, required: false })
+  @ApiPropertyOptional({ example: true })
   @IsBoolean()
   @IsOptional()
   isPrimary?: boolean;
 }
 
+export enum ProductStatusEnum {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  ARCHIVED = 'ARCHIVED',
+}
+
 export class CreateProductDto {
-  @ApiProperty({ example: 'Hydrating Hyaluronic Serum 30ml', description: 'Product title' })
+  @ApiProperty({ example: 'Gentle Hydrating Cleanser' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(255)
   name!: string;
 
-  @ApiProperty({ example: 'cat_cleanser_uuid_123', description: 'Associated category UUID' })
+  @ApiProperty({ example: 'cat_uuid_123', description: 'Category UUID' })
   @IsUUID()
   @IsNotEmpty()
   categoryId!: string;
 
-  @ApiProperty({ example: 'ACME-SERUM-001', description: 'Unique Stock Keeping Unit (SKU) per tenant' })
+  @ApiPropertyOptional({ example: 'brand_uuid_123', description: 'Brand UUID' })
+  @IsUUID()
+  @IsOptional()
+  brandId?: string;
+
+  @ApiPropertyOptional({ example: 'Aesop' })
+  @IsString()
+  @IsOptional()
+  brandName?: string;
+
+  @ApiProperty({ example: 'AESOP-CLEANSER-001' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
   sku!: string;
 
-  @ApiProperty({ example: 'Acme Glow', required: false })
+  @ApiPropertyOptional({ example: '9319944001234' })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
-  brand?: string;
+  barcode?: string;
 
-  @ApiProperty({ example: 'Deep hydration daily facial serum with 2% Hyaluronic Acid', required: false })
+  @ApiPropertyOptional({ example: 'Hydrating daily facial cleanser' })
   @IsString()
   @IsOptional()
-  @MaxLength(500)
   shortDescription?: string;
 
-  @ApiProperty({ example: 'Formulated with low and high molecular weight hyaluronic acid to penetrate multiple skin layers...', required: false })
+  @ApiPropertyOptional({ example: 'A gentle facial cleanser formulated with Botanical Extracts...' })
   @IsString()
   @IsOptional()
   longDescription?: string;
 
-  @ApiProperty({ example: 'SERUM', required: false })
+  @ApiPropertyOptional({ example: 'Apply to wet skin, massage gently, and rinse thoroughly.' })
   @IsString()
   @IsOptional()
-  @MaxLength(50)
+  instructions?: string;
+
+  @ApiPropertyOptional({ example: 'CLEANSER' })
+  @IsString()
+  @IsOptional()
   productType?: string;
 
-  @ApiProperty({ enum: ProductStatus, default: 'DRAFT', required: false })
-  @IsEnum(ProductStatus)
+  @ApiPropertyOptional({ enum: ProductStatusEnum, default: ProductStatusEnum.DRAFT })
+  @IsEnum(ProductStatusEnum)
   @IsOptional()
-  status?: ProductStatus;
+  status?: ProductStatusEnum;
 
-  @ApiProperty({ example: 48.00, required: false })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
+  @ApiPropertyOptional({ example: 39.0 })
+  @IsNumber()
   @IsOptional()
   price?: number;
 
-  @ApiProperty({ example: 'USD', default: 'USD', required: false })
+  @ApiPropertyOptional({ example: 'USD', default: 'USD' })
   @IsString()
   @IsOptional()
-  @MaxLength(3)
   currency?: string;
 
-  @ApiProperty({ type: [CreateProductImageDto], required: false })
+  @ApiPropertyOptional({ example: ['cleanser', 'hydrating', 'sensitive'] })
+  @IsArray()
+  @IsOptional()
+  tags?: string[];
+
+  @ApiPropertyOptional({ example: ['claim_uuid_1', 'claim_uuid_2'] })
+  @IsArray()
+  @IsOptional()
+  claimIds?: string[];
+
+  @ApiPropertyOptional({ type: [ProductImageDto] })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateProductImageDto)
+  @Type(() => ProductImageDto)
   @IsOptional()
-  images?: CreateProductImageDto[];
+  images?: ProductImageDto[];
+
+  @ApiPropertyOptional({ example: 'Gentle Hydrating Cleanser | Aesop' })
+  @IsString()
+  @IsOptional()
+  metaTitle?: string;
+
+  @ApiPropertyOptional({ example: 'Shop Aesop Gentle Hydrating Cleanser for soft, clean skin.' })
+  @IsString()
+  @IsOptional()
+  metaDescription?: string;
 }
