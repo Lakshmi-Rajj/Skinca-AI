@@ -13,6 +13,7 @@ import { RecommendationModule } from './recommendation/recommendation.module';
 import { AIExplanationModule } from './ai-explanation/ai-explanation.module';
 import { CustomerModule } from './customer/customer.module';
 import { RoutineModule } from './routine/routine.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { WidgetModule } from './widget/widget.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
@@ -35,6 +36,7 @@ import { RequestIdMiddleware } from './common/middlewares/request-id.middleware'
     AIExplanationModule,
     CustomerModule,
     RoutineModule,
+    AnalyticsModule,
     WidgetModule,
     AdminModule,
     HealthModule,
