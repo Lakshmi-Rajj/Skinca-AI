@@ -47,6 +47,7 @@ model Tenant {
   categories       ProductCategory[]
   brands           Brand[]
   claims           ProductClaim[]
+  customers        Customer[]
 
   @@map("tenants")
 }
@@ -362,4 +363,70 @@ model ProductIngredient {
 
   @@id([productId, ingredientId])
   @@map("product_ingredients")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  firstName String   @map("first_name") @db.VarChar(100)
+  lastName  String   @map("last_name") @db.VarChar(100)
+  email     String   @db.VarChar(255)
+  phone     String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  skinProfiles           SkinProfile[]
+  assessmentHistories    AssessmentHistory[]
+  recommendationHistories RecommendationHistory[]
+
+  @@unique([tenantId, email])
+  @@map("customers")
+}
+
+model SkinProfile {
+  id                String   @id @default(uuid()) @db.Uuid
+  customerId        String   @map("customer_id") @db.Uuid
+  version           Int      @default(1)
+  skinType          String   @map("skin_type") @db.VarChar(50)
+  concerns          String[] @default([])
+  sensitivity       String?  @db.VarChar(50)
+  hydrationLevel    String?  @map("hydration_level") @db.VarChar(50)
+  acneSeverity      String?  @map("acne_severity") @db.VarChar(50)
+  pigmentationLevel String?  @map("pigmentation_level") @db.VarChar(50)
+  wrinkleLevel      String?  @map("wrinkle_level") @db.VarChar(50)
+  isCurrent         Boolean  @default(true) @map("is_current")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("skin_profiles")
+}
+
+model AssessmentHistory {
+  id                   String   @id @default(uuid()) @db.Uuid
+  customerId           String   @map("customer_id") @db.Uuid
+  questionnaireAnswers Json     @map("questionnaire_answers")
+  calculatedProfile    Json     @map("calculated_profile")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_histories")
+}
+
+model RecommendationHistory {
+  id              String   @id @default(uuid()) @db.Uuid
+  customerId      String   @map("customer_id") @db.Uuid
+  recommendationId String  @map("recommendation_id") @db.Uuid
+  engineVersion   String   @map("engine_version") @db.VarChar(50)
+  confidenceScore Int      @map("confidence_score")
+  accepted        Boolean  @default(false)
+  feedback        String?  @db.Text
+  products        Json
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("recommendation_histories")
 }

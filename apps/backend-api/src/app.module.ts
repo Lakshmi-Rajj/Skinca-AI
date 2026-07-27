@@ -11,6 +11,7 @@ import { IngredientModule } from './ingredient/ingredient.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { RecommendationModule } from './recommendation/recommendation.module';
 import { AIExplanationModule } from './ai-explanation/ai-explanation.module';
+import { CustomerModule } from './customer/customer.module';
 import { WidgetModule } from './widget/widget.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
@@ -31,6 +32,7 @@ import { RequestIdMiddleware } from './common/middlewares/request-id.middleware'
     KnowledgeModule,
     RecommendationModule,
     AIExplanationModule,
+    CustomerModule,
     WidgetModule,
     AdminModule,
     HealthModule,

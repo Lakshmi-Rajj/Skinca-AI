@@ -7,3 +7,7 @@ export * from './category.repository';
 export * from './ingredient.repository';
 export * from './brand.repository';
 export * from './claim.repository';
+export * from './customer.repository';
+export * from './skin-profile.repository';
+export * from './assessment.repository';
+export * from './history.repository';
