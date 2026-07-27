@@ -6,6 +6,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthTokenResponse, UserIdentity } from './interfaces/auth.interface';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -66,6 +67,24 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
     return this.authService.resetPassword(dto);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('bearer-auth')
+  @ApiOperation({ summary: 'Change account password for authenticated user' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Current password incorrect' })
+  async changePassword(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.changePassword(
+      tenantId || currentUser.tenantId,
+      currentUser.userId,
+      dto,
+    );
   }
 
   @Public()

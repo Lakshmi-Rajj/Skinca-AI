@@ -5,6 +5,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Body,
   ParseUUIDPipe,
   HttpCode,
@@ -14,6 +15,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { InviteUserDto } from './dto/invite-user.dto';
+import { UserQueryDto } from './dto/user-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentTenant } from '../auth/decorators/current-tenant.decorator';
@@ -25,6 +28,18 @@ import { AuthenticatedUser } from '../auth/interfaces/auth.interface';
 export class UserController {
   constructor(private userService: UserService) {}
 
+  @Get()
+  @Roles('OWNER', 'ADMIN', 'MANAGER', 'STAFF')
+  @ApiOperation({ summary: 'List tenant users with pagination and search filters' })
+  @ApiResponse({ status: 200, description: 'Paginated user list returned' })
+  async findAllUsers(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Query() query: UserQueryDto,
+  ): Promise<{ items: any[]; total: number }> {
+    return this.userService.findAllUsers(tenantId || currentUser.tenantId, query);
+  }
+
   @Post()
   @Roles('OWNER', 'ADMIN')
   @HttpCode(HttpStatus.CREATED)
@@ -34,8 +49,21 @@ export class UserController {
     @CurrentTenant() tenantId: string,
     @CurrentUser() currentUser: AuthenticatedUser,
     @Body() dto: CreateUserDto,
-  ) {
+  ): Promise<any> {
     return this.userService.createUser(tenantId || currentUser.tenantId, dto, currentUser.userId);
+  }
+
+  @Post('invite')
+  @Roles('OWNER', 'ADMIN')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Invite a new team member to the tenant workspace' })
+  @ApiResponse({ status: 201, description: 'User invitation sent successfully' })
+  async inviteUser(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() dto: InviteUserDto,
+  ): Promise<any> {
+    return this.userService.inviteUser(tenantId || currentUser.tenantId, dto, currentUser.userId);
   }
 
   @Get(':id')
@@ -46,7 +74,7 @@ export class UserController {
     @CurrentTenant() tenantId: string,
     @CurrentUser() currentUser: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  ): Promise<any> {
     return this.userService.findUserById(tenantId || currentUser.tenantId, id);
   }
 
@@ -59,7 +87,7 @@ export class UserController {
     @CurrentUser() currentUser: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
-  ) {
+  ): Promise<any> {
     return this.userService.updateUser(tenantId || currentUser.tenantId, id, dto, currentUser.userId);
   }
 
@@ -71,7 +99,7 @@ export class UserController {
     @CurrentTenant() tenantId: string,
     @CurrentUser() currentUser: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  ): Promise<{ message: string }> {
     return this.userService.deleteUser(tenantId || currentUser.tenantId, id, currentUser.userId);
   }
 }

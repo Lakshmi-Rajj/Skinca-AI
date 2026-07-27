@@ -12,6 +12,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload, AuthTokenResponse, UserIdentity } from './interfaces/auth.interface';
 import { AuditService } from '../audit/audit.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -205,7 +206,7 @@ export class AuthService {
       passwordHash: newPasswordHash,
       resetPasswordToken: null,
       resetPasswordExpires: null,
-      refreshTokenHash: null, // Revoke active sessions
+      refreshTokenHash: null,
     });
 
     await this.auditService.logAction({
@@ -217,6 +218,38 @@ export class AuthService {
     });
 
     return { message: 'Password reset successfully. Please log in with your new password.' };
+  }
+
+  async changePassword(
+    tenantId: string,
+    userId: string,
+    dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findById(tenantId, userId);
+    if (!user || !user.passwordHash || user.deletedAt) {
+      throw new UnauthorizedException('User account invalid or password not set');
+    }
+
+    const isValidCurrent = await PasswordHasher.verify(dto.currentPassword, user.passwordHash);
+    if (!isValidCurrent) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const newPasswordHash = await PasswordHasher.hash(dto.newPassword);
+    await this.userRepository.update(tenantId, userId, {
+      passwordHash: newPasswordHash,
+      refreshTokenHash: null,
+    });
+
+    await this.auditService.logAction({
+      tenantId,
+      userId,
+      action: 'PASSWORD_CHANGED',
+      entityType: 'USER',
+      entityId: userId,
+    });
+
+    return { message: 'Password changed successfully. Active sessions invalidated.' };
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<{ message: string }> {

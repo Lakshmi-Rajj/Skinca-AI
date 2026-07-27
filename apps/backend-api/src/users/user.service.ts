@@ -8,6 +8,8 @@ import { UserRepository, RoleRepository } from '@platform/database-client';
 import { PasswordHasher } from '../auth/utils/password-hasher.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { InviteUserDto } from './dto/invite-user.dto';
+import { UserQueryDto } from './dto/user-query.dto';
 import { AuditService } from '../audit/audit.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,7 +20,22 @@ export class UserService {
 
   constructor(private auditService: AuditService) {}
 
-  async createUser(tenantId: string, dto: CreateUserDto, currentUserId: string) {
+  async findAllUsers(tenantId: string, query: UserQueryDto): Promise<{ items: any[]; total: number }> {
+    const { items, total } = await this.userRepository.findAll(tenantId, {
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+    });
+
+    const sanitizedItems = items.map((user) => {
+      const { passwordHash: _, refreshTokenHash: __, ...userWithoutSecrets } = user;
+      return userWithoutSecrets;
+    });
+
+    return { items: sanitizedItems, total };
+  }
+
+  async createUser(tenantId: string, dto: CreateUserDto, currentUserId: string): Promise<any> {
     const existing = await this.userRepository.findByEmail(tenantId, dto.email);
     if (existing) {
       throw new ConflictException('A user with this email address already exists');
@@ -56,7 +73,45 @@ export class UserService {
     return userWithoutSecrets;
   }
 
-  async findUserById(tenantId: string, id: string) {
+  async inviteUser(tenantId: string, dto: InviteUserDto, currentUserId: string): Promise<any> {
+    const existing = await this.userRepository.findByEmail(tenantId, dto.email);
+    if (existing) {
+      throw new ConflictException('A user with this email address already exists');
+    }
+
+    const role = await this.roleRepository.findById(dto.roleId);
+    if (!role) {
+      throw new BadRequestException('Specified role does not exist');
+    }
+
+    const inviteToken = uuidv4();
+    const temporaryPasswordHash = await PasswordHasher.hash(uuidv4());
+
+    const user = await this.userRepository.create({
+      tenant: { connect: { id: tenantId } },
+      role: { connect: { id: dto.roleId } },
+      email: dto.email,
+      passwordHash: temporaryPasswordHash,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      verificationToken: inviteToken,
+      createdBy: currentUserId,
+    });
+
+    await this.auditService.logAction({
+      tenantId,
+      userId: currentUserId,
+      action: 'USER_INVITED',
+      entityType: 'USER',
+      entityId: user.id,
+      payload: { email: user.email, roleId: user.roleId, inviteToken },
+    });
+
+    const { passwordHash: _, refreshTokenHash: __, ...userWithoutSecrets } = user;
+    return { ...userWithoutSecrets, inviteToken };
+  }
+
+  async findUserById(tenantId: string, id: string): Promise<any> {
     const user = await this.userRepository.findById(tenantId, id);
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
@@ -70,7 +125,7 @@ export class UserService {
     id: string,
     dto: UpdateUserDto,
     currentUserId: string,
-  ) {
+  ): Promise<any> {
     const user = await this.userRepository.findById(tenantId, id);
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
@@ -101,7 +156,7 @@ export class UserService {
     return userWithoutSecrets;
   }
 
-  async deleteUser(tenantId: string, id: string, currentUserId: string) {
+  async deleteUser(tenantId: string, id: string, currentUserId: string): Promise<{ message: string }> {
     const user = await this.userRepository.findById(tenantId, id);
     if (!user || user.deletedAt) {
       throw new NotFoundException('User not found');
