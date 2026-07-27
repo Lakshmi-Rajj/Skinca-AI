@@ -1,0 +1,14 @@
+export enum SkinType {
+  OILY = 'OILY',
+  DRY = 'DRY',
+  COMBINATION = 'COMBINATION',
+  NORMAL = 'NORMAL'
+}
+
+export enum ProductCategory {
+  CLEANSER = 'CLEANSER',
+  SERUM = 'SERUM',
+  MOISTURISER = 'MOISTURISER',
+  SUNSCREEN = 'SUNSCREEN',
+  TREATMENT = 'TREATMENT'
+}

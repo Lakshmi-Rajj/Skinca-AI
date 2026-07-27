@@ -1,0 +1,18 @@
+# Global Code Owners
+* @platform-engineering-lead
+
+# Infrastructure
+/infrastructure/ @devops-lead
+/.github/ @devops-lead
+
+# Application Layers
+/apps/admin-dashboard/ @frontend-team
+/apps/storefront-widget/ @frontend-team
+/apps/backend-api/ @backend-team
+/apps/recommendation-engine/ @data-science-team
+/apps/ai-explanation-worker/ @ai-team
+
+# Shared Packages
+/packages/api-contracts/ @backend-team @frontend-team
+/packages/database-client/ @database-team
+/packages/dermatological-rules/ @domain-experts
