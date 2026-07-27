@@ -1,0 +1,1 @@
+# Rule pipeline package initialization

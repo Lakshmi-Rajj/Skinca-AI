@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { IngredientModule } from './ingredient/ingredient.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
+import { RecommendationModule } from './recommendation/recommendation.module';
 import { WidgetModule } from './widget/widget.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
@@ -27,6 +28,7 @@ import { RequestIdMiddleware } from './common/middlewares/request-id.middleware'
     CatalogModule,
     IngredientModule,
     KnowledgeModule,
+    RecommendationModule,
     WidgetModule,
     AdminModule,
     HealthModule,
