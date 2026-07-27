@@ -48,6 +48,7 @@ model Tenant {
   brands           Brand[]
   claims           ProductClaim[]
   customers        Customer[]
+  routines         PersonalizedRoutine[]
 
   @@map("tenants")
 }
@@ -379,6 +380,7 @@ model Customer {
   skinProfiles           SkinProfile[]
   assessmentHistories    AssessmentHistory[]
   recommendationHistories RecommendationHistory[]
+  routines               PersonalizedRoutine[]
 
   @@unique([tenantId, email])
   @@map("customers")
@@ -429,4 +431,23 @@ model RecommendationHistory {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@map("recommendation_histories")
+}
+
+model PersonalizedRoutine {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  customerId    String   @map("customer_id") @db.Uuid
+  routineType   String   @default("STANDARD") @map("routine_type") @db.VarChar(50)
+  engineVersion String   @default("v4.1.0") @map("engine_version") @db.VarChar(50)
+  morningSteps  Json     @map("morning_steps")
+  eveningSteps  Json     @map("evening_steps")
+  warnings      String[] @default([])
+  explanation   Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("personalized_routines")
 }

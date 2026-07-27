@@ -11,3 +11,4 @@ export * from './customer.repository';
 export * from './skin-profile.repository';
 export * from './assessment.repository';
 export * from './history.repository';
+export * from './routine.repository';
