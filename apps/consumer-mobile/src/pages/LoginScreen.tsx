@@ -73,11 +73,12 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         const callbackUrl = `${origin}/sso-callback`;
 
-        // If running in Capacitor Android APK, open in Chrome Custom Tab overlay via Browser.open
+        // If running in Capacitor Android APK, use custom app scheme to route directly back to installed app
         if (Boolean((window as any).Capacitor)) {
+          const nativeCallbackUrl = 'com.skinca.ai://sso-callback';
           const res = await signIn.create({
             strategy: 'oauth_google',
-            redirectUrl: callbackUrl,
+            redirectUrl: nativeCallbackUrl,
           });
           const googleAuthUrl = res.firstFactorVerification?.externalVerificationRedirectUrl;
           if (googleAuthUrl) {
@@ -85,8 +86,8 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           } else {
             await signIn.authenticateWithRedirect({
               strategy: 'oauth_google',
-              redirectUrl: callbackUrl,
-              redirectUrlComplete: callbackUrl,
+              redirectUrl: nativeCallbackUrl,
+              redirectUrlComplete: nativeCallbackUrl,
             });
           }
           return;
