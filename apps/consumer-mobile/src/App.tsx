@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
+import { App as CapApp } from '@capacitor/app';
 import { Toaster, toast } from 'react-hot-toast';
 import { useMobileState } from './hooks/useMobileState';
 import { normalizeClerkUser } from './engines/clerkAuthEngine';
@@ -141,7 +142,18 @@ export default function App() {
       setIsMobile(window.innerWidth <= 768 || Boolean((window as any).Capacitor));
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    // Handle incoming deep links when returning from Google OAuth in Chrome
+    const listener = CapApp.addListener('appUrlOpen', (event) => {
+      if (event.url.includes('/sso-callback') || event.url.includes('__clerk')) {
+        setTab('sso-callback');
+      }
+    });
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      listener.then(l => l.remove());
+    };
   }, []);
 
   function navigate(id: string) {
