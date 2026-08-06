@@ -86,9 +86,11 @@ export default function App() {
   const [showProModal, setShowProModal] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Sync when user returns from Google OAuth or is explicitly signed in with Clerk
+  // Handles session expiry & Clerk Cloud Metadata onboarding sync
   useEffect(() => {
-    if (isLoaded && isSignedIn && clerkUser) {
+    if (!isLoaded) return;
+
+    if (isSignedIn && clerkUser) {
       const norm = normalizeClerkUser(clerkUser);
       state.updateProfile({
         isLoggedIn: true,
@@ -96,7 +98,7 @@ export default function App() {
       });
 
       if (tab === 'login' || tab === 'sso-callback') {
-        toast.success(`Welcome, ${norm.fullName}! Signed in successfully with Google.`, {
+        toast.success(`Welcome, ${norm.fullName}! Signed in successfully.`, {
           id: 'auth-success-toast',
           duration: 4500,
           position: 'top-center',
@@ -119,19 +121,37 @@ export default function App() {
         if (typeof window !== 'undefined' && window.location.pathname.startsWith('/sso-callback')) {
           window.history.replaceState({}, '', '/');
         }
-        const next = state.profile.onboardingDone ? 'dashboard' : 'onboarding';
+
+        // Check Clerk cloud metadata FIRST (cross-device), then fall back to local storage
+        const clerkDone = !!(clerkUser.unsafeMetadata?.onboardingDone);
+        const localDone = state.profile.onboardingDone;
+        const onboardingDone = clerkDone || localDone;
+
+        // Sync to local state if Clerk cloud says done but local memory doesn't know yet
+        if (clerkDone && !localDone) {
+          state.updateProfile({ onboardingDone: true });
+        }
+
+        const next = onboardingDone ? 'dashboard' : 'onboarding';
         setTab(next);
         if (next === 'dashboard') setUnlocked(true);
       }
+    } else if (!isSignedIn) {
+      // Session expired OR user never logged in — force return to login screen
+      if (tab !== 'login' && tab !== 'sso-callback') {
+        state.updateProfile({ isLoggedIn: false });
+        setUnlocked(false);
+        setTab('login');
+        if (tab === 'onboarding' || tab === 'dashboard') {
+          toast('Session ended. Please sign in again.', {
+            icon: '🔐',
+            style: { background: '#1a1a1a', color: '#fff', borderRadius: '20px' },
+            position: 'top-center',
+          });
+        }
+      }
     }
   }, [isLoaded, isSignedIn, clerkUser, tab]);
-
-
-
-
-
-
-
 
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' && (window.innerWidth <= 768 || Boolean((window as any).Capacitor))
@@ -159,6 +179,18 @@ export default function App() {
   function navigate(id: string) {
     setDrawerOpen(false);
     if (id === 'pro') { setShowProModal(true); return; }
+
+    // Guard: Questionnaire is NEVER accessible without being signed in
+    if (id === 'onboarding' && !isSignedIn) {
+      toast('Please sign in first to start the questionnaire.', {
+        icon: '🔐',
+        style: { background: '#1a1a1a', color: '#fff', borderRadius: '20px' },
+        position: 'top-center',
+      });
+      setTab('login');
+      return;
+    }
+
     setTab(id as Tab);
     if (id === 'login' || id === 'onboarding') {
       setUnlocked(false);
@@ -333,18 +365,29 @@ export default function App() {
             <LoginScreen
               onLoginSuccess={(u) => {
                 state.updateProfile({ isLoggedIn: true, avatarUrl: u.avatarUrl || state.profile.avatarUrl });
-                const next = state.profile.onboardingDone ? 'dashboard' : 'onboarding';
+                const clerkDone = !!(clerkUser?.unsafeMetadata?.onboardingDone);
+                const localDone = state.profile.onboardingDone;
+                const onboardingDone = clerkDone || localDone;
+                if (clerkDone && !localDone) state.updateProfile({ onboardingDone: true });
+                const next = onboardingDone ? 'dashboard' : 'onboarding';
                 setTab(next);
                 if (next === 'dashboard') setUnlocked(true);
               }}
-              onSkip={() => {
-                state.updateProfile({ isLoggedIn: true });
-                setTab('onboarding');
-              }}
+              onSkip={undefined}
             />
           )}
 
-          {tab === 'onboarding'   && <OnboardingScreen onComplete={(data) => { state.completeOnboarding(data); if (data.analysisMode === 'QUESTIONNAIRE_ONLY') { setTab('dashboard'); setUnlocked(true); } else { setTab('scan'); } }} />}
+          {tab === 'onboarding'   && <OnboardingScreen onComplete={async (data) => {
+            state.completeOnboarding(data);
+            if (clerkUser) {
+              try {
+                await clerkUser.update({ unsafeMetadata: { onboardingDone: true } });
+              } catch (e) {
+                console.warn('Clerk metadata sync warning:', e);
+              }
+            }
+            if (data.analysisMode === 'QUESTIONNAIRE_ONLY') { setTab('dashboard'); setUnlocked(true); } else { setTab('scan'); }
+          }} />}
 
           {tab === 'scan'        && <ScanScreen state={state} onScanComplete={() => { setTab('dashboard'); setUnlocked(true); }} />}
           {tab === 'dashboard'   && <SkinAnalysisDashboard state={state} onNavigate={setTab as any} />}

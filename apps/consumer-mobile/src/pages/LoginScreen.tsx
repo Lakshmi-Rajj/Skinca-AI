@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSignIn, useUser } from '@clerk/clerk-react';
+import { Browser } from '@capacitor/browser';
 import loginHeroImg from '../assets/login_hero.png';
 import { normalizeClerkUser } from '../engines/clerkAuthEngine';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: { email: string; name: string; avatarUrl?: string }) => void;
-  onSkip: () => void;
+  onSkip?: () => void;
 }
 
-export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
+export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const { signIn } = useSignIn();
   const { user: clerkUser, isSignedIn, isLoaded } = useUser();
 
@@ -63,7 +64,25 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
 
     try {
       if (signIn) {
-        const callbackUrl = `${window.location.origin}/sso-callback`;
+        const isCapacitorOrLocalhost = typeof window !== 'undefined' && (
+          window.location.origin.includes('localhost') || Boolean((window as any).Capacitor)
+        );
+        const origin = isCapacitorOrLocalhost && !window.location.host.includes(':3000')
+          ? 'https://skincare-ai-eta.vercel.app'
+          : window.location.origin;
+
+        const callbackUrl = `${origin}/sso-callback`;
+
+        // If running in Capacitor Android APK, open in Chrome Custom Tab overlay
+        if (Boolean((window as any).Capacitor)) {
+          await signIn.authenticateWithRedirect({
+            strategy: 'oauth_google',
+            redirectUrl: callbackUrl,
+            redirectUrlComplete: callbackUrl,
+          });
+          return;
+        }
+
         await signIn.authenticateWithRedirect({
           strategy: 'oauth_google',
           redirectUrl: callbackUrl,
