@@ -34,3 +34,12 @@ pnpm-debug.log*
 # Docker & Temp
 .turbo/
 coverage/
+
+# Android generated / build files (not needed in repo)
+apps/consumer-mobile/android/gradle/wrapper/dists/
+apps/consumer-mobile/android/.gradle/
+apps/consumer-mobile/android/app/build/
+apps/consumer-mobile/android/build/
+apps/consumer-mobile/android/local.properties
+*.apk
+*.aab

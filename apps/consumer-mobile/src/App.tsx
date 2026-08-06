@@ -1,239 +1,389 @@
-import React, { useState } from 'react';
-import { Button, Card, Badge } from '@platform/ui-components';
+import React, { useState, useEffect } from 'react';
+import { useUser, AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
+import { Toaster, toast } from 'react-hot-toast';
+import { useMobileState } from './hooks/useMobileState';
+import { normalizeClerkUser } from './engines/clerkAuthEngine';
 
-export function App() {
-  const [activeTab, setActiveTab] = useState<'routine' | 'scanner' | 'tracker' | 'compatibility' | 'ai'>('routine');
-  const [amDone, setAmDone] = useState(false);
-  const [pmDone, setPmDone] = useState(false);
 
-  // Scanner state
-  const [scanQuery, setScanQuery] = useState('');
-  const [scanResult, setScanResult] = useState<any>(null);
 
-  // Compatibility state
-  const [prodA, setProdA] = useState('Niacinamide 10% Serum');
-  const [prodB, setProdB] = useState('Retinol 0.5% Night Oil');
+import { LoginScreen }                 from './pages/LoginScreen';
+import { OnboardingScreen }            from './pages/OnboardingScreen';
+import { ScanScreen }                  from './pages/ScanScreen';
+import { SkinAnalysisDashboard }       from './pages/SkinAnalysisDashboard';
+import { SkinAnalysisMapScreen }       from './pages/SkinAnalysisMapScreen';
+import { PersonalizedRoutineScreen }    from './pages/PersonalizedRoutineScreen';
+import { RecommendedIngredientsScreen } from './pages/RecommendedIngredientsScreen';
+import { RecommendedProductsScreen }    from './pages/RecommendedProductsScreen';
+import { ProgressTrackerScreen }       from './pages/ProgressTrackerScreen';
+import { SkinAgeDiagnosticScreen }     from './pages/SkinAgeDiagnosticScreen';
+import { SkinAIChatScreen }            from './pages/SkinAIChatScreen';
+import { RecommendationRationaleScreen } from './pages/RecommendationRationaleScreen';
+import { DiscoverCatalogScreen }       from './pages/DiscoverCatalogScreen';
+import { LayeringCompatibilityScreen } from './pages/LayeringCompatibilityScreen';
+import { MySpaceJournalScreen }        from './pages/MySpaceJournalScreen';
+import { ProfileScreen }               from './pages/ProfileScreen';
+import { ProPaywallModal }             from './components/ProPaywallModal';
 
-  // AI Assistant state
-  const [aiQuestion, setAiQuestion] = useState('');
-  const [aiChat, setAiChat] = useState([
-    { sender: 'assistant', text: 'Hello! I am your AI Skincare Assistant. Ask me anything about your routine, ingredient safety, or layering instructions.' },
-  ]);
+type Tab =
+  | 'sso-callback' | 'login' | 'onboarding' | 'scan' | 'dashboard' | 'map' | 'routine'
+  | 'ingredients' | 'shop' | 'tracker' | 'age' | 'chat'
+  | 'rationale' | 'discover' | 'layering' | 'journal' | 'profile' | 'pro';
 
-  const handleScan = () => {
-    setScanResult({
-      name: scanQuery || 'Hydrating Facial Cleanser',
-      inci: 'Water, Glycerin, Cetearyl Alcohol, Ceramide NP, Hyaluronic Acid',
-      safety: 'HIGH_SAFETY',
-      compatibility: 'Compatible with your Combination skin profile',
-    });
-  };
 
-  const handleAiAsk = () => {
-    if (!aiQuestion.trim()) return;
-    setAiChat((prev) => [
-      ...prev,
-      { sender: 'user', text: aiQuestion },
-      {
-        sender: 'assistant',
-        text: `Based on your Combination skin profile and active Acne concerns: ${aiQuestion} - Your current Niacinamide 10% serum works synergistically with your morning moisturizer without causing barrier irritation.`,
-      },
-    ]);
-    setAiQuestion('');
-  };
+const NAV_SCREENS = [
+  { id: 'login', label: 'Welcome & Login 🔐' },
+  { id: 'onboarding', label: 'Start Questionnaire' },
+  { id: 'scan', label: 'AI Face Scanner 📸' },
+  { id: 'dashboard', label: 'Home Dashboard' },
+  { id: 'map', label: 'Skin Analysis Map 🗺️' },
+  { id: 'routine', label: 'Routine' },
+  { id: 'shop', label: 'Shop Recommendations' },
+  { id: 'ingredients', label: 'Ingredients Guide' },
+  { id: 'tracker', label: 'Progress Tracker' },
+  { id: 'age', label: 'Skin Age Diagnostic' },
+  { id: 'chat', label: 'Ask Skin AI' },
+  { id: 'rationale', label: 'Why This Recommendation' },
+  { id: 'layering', label: 'Layering Checker' },
+  { id: 'journal', label: 'Skin Journal' },
+  { id: 'profile', label: 'My Profile' },
+  { id: 'pro', label: '✦ Skinca PRO' },
+];
+
+
+// SVG icons for bottom nav matching reference design
+function NavIcon({ id, active }: { id: string; active: boolean }) {
+  const c = active ? '#326859' : '#b0b0b0';
+  const sw = '1.8';
+  if (id === 'dashboard') return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+  if (id === 'routine') return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+  if (id === 'scan') return <svg width={22} height={22} viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+  if (id === 'shop') return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>;
+  if (id === 'profile') return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+  return null;
+}
+
+const BOTTOM_NAV = [
+  { id: 'dashboard', label: 'Home' },
+  { id: 'routine', label: 'Routine' },
+  { id: 'scan', label: 'Analysis' },
+  { id: 'shop', label: 'Shop' },
+  { id: 'profile', label: 'Profile' },
+];
+
+export default function App() {
+  const { user: clerkUser, isSignedIn, isLoaded } = useUser();
+  const state = useMobileState();
+
+  const [tab, setTab] = useState<Tab>(() => {
+    if (typeof window !== 'undefined' && (window.location.pathname.startsWith('/sso-callback') || window.location.search.includes('__clerk'))) {
+      return 'sso-callback';
+    }
+    return 'login';
+  });
+
+  const [unlocked, setUnlocked] = useState<boolean>(false);
+  const [showProModal, setShowProModal] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Sync when user returns from Google OAuth or is explicitly signed in with Clerk
+  useEffect(() => {
+    if (isLoaded && isSignedIn && clerkUser) {
+      const norm = normalizeClerkUser(clerkUser);
+      state.updateProfile({
+        isLoggedIn: true,
+        avatarUrl: norm.imageUrl || state.profile.avatarUrl
+      });
+
+      if (tab === 'login' || tab === 'sso-callback') {
+        toast.success(`Welcome, ${norm.fullName}! Signed in successfully with Google.`, {
+          id: 'auth-success-toast',
+          duration: 4500,
+          position: 'top-center',
+          style: {
+            background: '#0a1210',
+            color: '#ffffff',
+            border: '1px solid rgba(110, 231, 183, 0.4)',
+            borderRadius: '20px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+            fontSize: '13px',
+            fontWeight: '700',
+            padding: '12px 20px',
+          },
+          iconTheme: {
+            primary: '#6ee7b7',
+            secondary: '#0a1210',
+          },
+        });
+
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/sso-callback')) {
+          window.history.replaceState({}, '', '/');
+        }
+        const next = state.profile.onboardingDone ? 'dashboard' : 'onboarding';
+        setTab(next);
+        if (next === 'dashboard') setUnlocked(true);
+      }
+    }
+  }, [isLoaded, isSignedIn, clerkUser, tab]);
+
+
+
+
+
+
+
+
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && (window.innerWidth <= 768 || Boolean((window as any).Capacitor))
+  );
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768 || Boolean((window as any).Capacitor));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  function navigate(id: string) {
+    setDrawerOpen(false);
+    if (id === 'pro') { setShowProModal(true); return; }
+    setTab(id as Tab);
+    if (id === 'login' || id === 'onboarding') {
+      setUnlocked(false);
+    } else {
+      setUnlocked(true);
+    }
+  }
+
+
+  const outerContainerStyle: React.CSSProperties = isMobile
+    ? {
+        width: '100vw',
+        height: '100vh',
+        minHeight: '100vh',
+        background: '#ffffff',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 0,
+        margin: 0,
+        overflow: 'hidden',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      }
+    : {
+        minHeight: '100vh',
+        background: '#e8e8ee',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justify: 'center',
+        padding: '16px 0',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      };
+
+  const viewportContainerStyle: React.CSSProperties = isMobile
+    ? {
+        width: '100%',
+        maxWidth: '100%',
+        height: '100%',
+        minHeight: '100%',
+        borderRadius: 0,
+        boxShadow: 'none',
+        overflow: 'hidden',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#ffffff',
+      }
+    : {
+        width: '100%',
+        maxWidth: 430,
+        height: '92vh',
+        maxHeight: 880,
+        borderRadius: 24,
+        boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+        overflow: 'hidden',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#ffffff',
+      };
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 font-sans flex flex-col justify-between max-w-md mx-auto shadow-2xl border-x border-stone-800">
-      {/* Mobile Top Status Header */}
-      <header className="px-6 pt-6 pb-4 border-b border-stone-800 bg-stone-900/90 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center">
-        <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400">Personal Companion</span>
-          <h1 className="font-serif text-2xl font-normal text-stone-50">AURA Mobile</h1>
+    <div style={outerContainerStyle}>
+
+      {/* Mobile Viewport Container */}
+      <div style={viewportContainerStyle}>
+
+
+        {/* ─── TOP HEADER BAR (Only visible on Home Dashboard & main app screens) ─── */}
+        {tab !== 'login' && tab !== 'onboarding' && (
+          <header style={{
+            background: '#ffffff',
+            borderBottom: '1px solid #f0f0f0',
+            padding: '14px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexShrink: 0, zIndex: 60,
+          }}>
+            {/* Hamburger Menu Icon */}
+            <button
+              onClick={() => setDrawerOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', gap: 4.5 }}
+              aria-label="Open menu"
+            >
+              <span style={{ display: 'block', width: 20, height: 2, background: '#111111', borderRadius: 2 }} />
+              <span style={{ display: 'block', width: 14, height: 2, background: '#111111', borderRadius: 2 }} />
+              <span style={{ display: 'block', width: 20, height: 2, background: '#111111', borderRadius: 2 }} />
+            </button>
+
+            {/* Skinca AI Brand Logo */}
+            <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: 1.5, color: '#111111' }}>Skinca AI</span>
+
+            {/* Bell Notifications Button */}
+            <button
+              onClick={() => navigate('chat')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, position: 'relative' }}
+              aria-label="Notifications"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </button>
+          </header>
+        )}
+
+
+        {/* ─── DRAWER OVERLAY MENU ─── */}
+        {drawerOpen && (
+          <>
+            <div
+              onClick={() => setDrawerOpen(false)}
+              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 70 }}
+            />
+            <div style={{
+              position: 'absolute', top: 0, left: 0, bottom: 0, width: 270,
+              background: '#ffffff', zIndex: 80, display: 'flex', flexDirection: 'column',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.12)',
+            }}>
+              <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: 1.5, color: '#111111' }}>Skinca AI</span>
+                <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#888888', padding: 0, lineHeight: 1 }}>×</button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+                {NAV_SCREENS.map(m => {
+                  const isActive = tab === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => navigate(m.id)}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '13px 20px',
+                        border: 'none', background: isActive ? '#f0faf7' : 'transparent',
+                        cursor: 'pointer', fontSize: 13, fontWeight: isActive ? 700 : 500,
+                        color: isActive ? '#326859' : '#444444',
+                        borderLeft: isActive ? '3px solid #326859' : '3px solid transparent',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ padding: '16px 20px', borderTop: '1px solid #f0f0f0' }}>
+                <button onClick={() => navigate('pro')} style={{ width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: '#326859', color: '#ffffff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  ✦ Upgrade to PRO
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ─── MAIN CONTENT VIEWPORT ─── */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
+          {tab === 'sso-callback' && (
+            <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a1210', color: '#ffffff', fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid rgba(110, 231, 183, 0.2)', borderTopColor: '#6ee7b7', animation: 'spin 0.8s linear infinite', marginBottom: 16 }} />
+              <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Finalizing Google Authentication...</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6, marginBottom: 20 }}>Completing secure token handshake with Clerk</span>
+              <AuthenticateWithRedirectCallback
+                afterSignInUrl={window.location.origin}
+                afterSignUpUrl={window.location.origin}
+                signInForceRedirectUrl={window.location.origin}
+                signUpForceRedirectUrl={window.location.origin}
+              />
+            </div>
+          )}
+
+          {tab === 'login'        && (
+
+            <LoginScreen
+              onLoginSuccess={(u) => {
+                state.updateProfile({ isLoggedIn: true, avatarUrl: u.avatarUrl || state.profile.avatarUrl });
+                const next = state.profile.onboardingDone ? 'dashboard' : 'onboarding';
+                setTab(next);
+                if (next === 'dashboard') setUnlocked(true);
+              }}
+              onSkip={() => {
+                state.updateProfile({ isLoggedIn: true });
+                setTab('onboarding');
+              }}
+            />
+          )}
+
+          {tab === 'onboarding'   && <OnboardingScreen onComplete={(data) => { state.completeOnboarding(data); if (data.analysisMode === 'QUESTIONNAIRE_ONLY') { setTab('dashboard'); setUnlocked(true); } else { setTab('scan'); } }} />}
+
+          {tab === 'scan'        && <ScanScreen state={state} onScanComplete={() => { setTab('dashboard'); setUnlocked(true); }} />}
+          {tab === 'dashboard'   && <SkinAnalysisDashboard state={state} onNavigate={setTab as any} />}
+          {tab === 'map'         && <SkinAnalysisMapScreen state={state} />}
+          {tab === 'routine'     && <PersonalizedRoutineScreen state={state} />}
+          {tab === 'ingredients' && <RecommendedIngredientsScreen state={state} />}
+          {tab === 'shop'        && <RecommendedProductsScreen state={state} />}
+          {tab === 'tracker'     && <ProgressTrackerScreen state={state} />}
+          {tab === 'age'         && <SkinAgeDiagnosticScreen state={state} />}
+          {tab === 'chat'        && <SkinAIChatScreen state={state} />}
+          {tab === 'rationale'   && <RecommendationRationaleScreen state={state} />}
+          {tab === 'discover'    && <DiscoverCatalogScreen state={state} />}
+          {tab === 'layering'    && <LayeringCompatibilityScreen state={state} />}
+          {tab === 'journal'     && <MySpaceJournalScreen state={state} />}
+          {tab === 'profile'     && <ProfileScreen state={state} onNavigate={setTab as any} />}
         </div>
-        <Badge variant="success">Companion v1.0</Badge>
-      </header>
 
-      {/* Main Screen Views */}
-      <main className="p-6 flex-grow space-y-6 overflow-y-auto">
-        {/* VIEW 1: DAILY ROUTINE & PROFILE */}
-        {activeTab === 'routine' && (
-          <div className="space-y-6">
-            <Card variant="bordered" className="bg-stone-900/60 p-5 border-stone-800 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-mono uppercase tracking-wider text-stone-400">Active Profile</span>
-                <Badge variant="default">Combination</Badge>
-              </div>
-              <p className="text-xs text-stone-300 font-light">Targeting: Acne & Hyperpigmentation • Moderate Sensitivity</p>
-            </Card>
+        {/* ─── BOTTOM NAVIGATION BAR ─── */}
+        {unlocked && tab !== 'onboarding' && tab !== 'login' && (
 
-            {/* Morning Routine Card */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <h3 className="font-serif text-xl text-stone-100 flex items-center gap-2">☀️ Morning Routine</h3>
+          <nav style={{ background: '#ffffff', borderTop: '1px solid #ebebeb', display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '10px 8px 22px', flexShrink: 0, zIndex: 40 }}>
+            {BOTTOM_NAV.map(n => {
+              const isActive = tab === n.id;
+              const isCenter = n.id === 'scan';
+              return (
                 <button
-                  onClick={() => setAmDone(!amDone)}
-                  className={`text-xs px-3 py-1 font-mono uppercase border transition-all ${
-                    amDone ? 'bg-emerald-950 text-emerald-300 border-emerald-700' : 'bg-stone-900 text-stone-400 border-stone-700'
-                  }`}
+                  key={n.id}
+                  onClick={() => setTab(n.id as Tab)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: 'none', background: 'none', transform: isCenter ? 'translateY(-14px)' : 'none', padding: '0 8px', gap: 3 }}
                 >
-                  {amDone ? '✓ Logged Complete' : 'Mark Complete'}
+                  {isCenter ? (
+                    <div style={{ width: 50, height: 50, borderRadius: '50%', background: '#326859', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(50,104,89,0.4)', border: '3px solid #ffffff' }}>
+                      <NavIcon id="scan" active={true} />
+                    </div>
+                  ) : (
+                    <NavIcon id={n.id} active={isActive} />
+                  )}
+                  <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? '#326859' : '#b0b0b0', marginTop: isCenter ? 5 : 0 }}>{n.label}</span>
                 </button>
-              </div>
-              <Card variant="default" className="bg-stone-900 border-stone-800 p-4 space-y-2">
-                <div className="text-sm font-serif font-medium text-stone-100">1. Gentle Hydrating Cleanser</div>
-                <div className="text-sm font-serif font-medium text-stone-100">2. Niacinamide 10% + Zinc 1%</div>
-                <div className="text-sm font-serif font-medium text-stone-100">3. Broad Spectrum Daily SPF 50</div>
-              </Card>
-            </div>
-
-            {/* Evening Routine Card */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <h3 className="font-serif text-xl text-stone-100 flex items-center gap-2">🌙 Evening Routine</h3>
-                <button
-                  onClick={() => setPmDone(!pmDone)}
-                  className={`text-xs px-3 py-1 font-mono uppercase border transition-all ${
-                    pmDone ? 'bg-emerald-950 text-emerald-300 border-emerald-700' : 'bg-stone-900 text-stone-400 border-stone-700'
-                  }`}
-                >
-                  {pmDone ? '✓ Logged Complete' : 'Mark Complete'}
-                </button>
-              </div>
-              <Card variant="default" className="bg-stone-900 border-stone-800 p-4 space-y-2">
-                <div className="text-sm font-serif font-medium text-stone-100">1. Double Cleanser</div>
-                <div className="text-sm font-serif font-medium text-stone-100">2. Overnight Barrier Balm</div>
-              </Card>
-            </div>
-          </div>
+              );
+            })}
+          </nav>
         )}
 
-        {/* VIEW 2: PRODUCT & BARCODE SCANNER */}
-        {activeTab === 'scanner' && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl text-stone-100">Product & INCI Scanner</h2>
-            <Card variant="bordered" className="bg-stone-900 p-5 border-stone-800 space-y-4">
-              <label className="block text-xs font-mono uppercase text-stone-400">Search Product or Paste INCI Ingredients</label>
-              <input
-                type="text"
-                value={scanQuery}
-                onChange={(e) => setScanQuery(e.target.value)}
-                placeholder="e.g. Niacinamide, Salicylic Acid, Product Barcode"
-                className="w-full bg-stone-950 border border-stone-800 p-3 text-sm text-stone-100 focus:outline-none focus:border-stone-500"
-              />
-              <Button variant="primary" size="md" className="w-full" onClick={handleScan}>
-                🔍 Scan Ingredients
-              </Button>
-            </Card>
+        {/* PRO Subscription Modal */}
+        {showProModal && <ProPaywallModal onClose={() => setShowProModal(false)} />}
 
-            {scanResult && (
-              <Card variant="default" className="bg-stone-900 border-stone-800 p-5 space-y-3">
-                <h4 className="font-serif text-lg text-stone-100">{scanResult.name}</h4>
-                <div className="text-xs font-mono text-stone-400">INCI: {scanResult.inci}</div>
-                <Badge variant="success">{scanResult.compatibility}</Badge>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* VIEW 3: ROUTINE TRACKER & JOURNAL */}
-        {activeTab === 'tracker' && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl text-stone-100">Progress Journal & Tracker</h2>
-            <Card variant="bordered" className="bg-stone-900 p-5 border-stone-800 space-y-4">
-              <span className="text-xs font-mono uppercase text-stone-400">Weekly Routine Adherence</span>
-              <div className="grid grid-cols-7 gap-2 text-center text-xs font-mono">
-                <div className="p-2 bg-emerald-950 text-emerald-300 border border-emerald-700">M</div>
-                <div className="p-2 bg-emerald-950 text-emerald-300 border border-emerald-700">T</div>
-                <div className="p-2 bg-emerald-950 text-emerald-300 border border-emerald-700">W</div>
-                <div className="p-2 bg-emerald-950 text-emerald-300 border border-emerald-700">T</div>
-                <div className="p-2 bg-emerald-950 text-emerald-300 border border-emerald-700">F</div>
-                <div className="p-2 bg-stone-950 text-stone-500 border border-stone-800">S</div>
-                <div className="p-2 bg-stone-950 text-stone-500 border border-stone-800">S</div>
-              </div>
-              <p className="text-xs text-stone-400">5 out of 7 days logged complete this week.</p>
-            </Card>
-          </div>
-        )}
-
-        {/* VIEW 4: COMPATIBILITY CHECKER */}
-        {activeTab === 'compatibility' && (
-          <div className="space-y-6">
-            <h2 className="font-serif text-2xl text-stone-100">Product Compatibility Checker</h2>
-            <Card variant="bordered" className="bg-stone-900 p-5 border-stone-800 space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase text-stone-400">Product A</label>
-                <input
-                  type="text"
-                  value={prodA}
-                  onChange={(e) => setProdA(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 p-3 text-sm text-stone-100"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase text-stone-400">Product B</label>
-                <input
-                  type="text"
-                  value={prodB}
-                  onChange={(e) => setProdB(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 p-3 text-sm text-stone-100"
-                />
-              </div>
-              <Badge variant="warning">⚠️ Caution: Alternate AM/PM usage recommended</Badge>
-              <p className="text-xs text-stone-400">Do not apply Niacinamide 10% and High-Dose Retinol at the exact same moment to avoid barrier irritation.</p>
-            </Card>
-          </div>
-        )}
-
-        {/* VIEW 5: AI SKINCARE ASSISTANT */}
-        {activeTab === 'ai' && (
-          <div className="space-y-4">
-            <h2 className="font-serif text-2xl text-stone-100">AI Skincare Assistant</h2>
-            <div className="h-64 overflow-y-auto bg-stone-900 p-4 border border-stone-800 space-y-3">
-              {aiChat.map((msg, idx) => (
-                <div key={idx} className={`p-3 text-xs rounded-none ${msg.sender === 'user' ? 'bg-stone-800 text-stone-100 self-end ml-8' : 'bg-stone-950 text-stone-300 border border-stone-800 mr-8'}`}>
-                  {msg.text}
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={aiQuestion}
-                onChange={(e) => setAiQuestion(e.target.value)}
-                placeholder="Ask about ingredients or layering..."
-                className="flex-grow bg-stone-900 border border-stone-800 p-3 text-xs text-stone-100"
-              />
-              <Button variant="primary" size="sm" onClick={handleAiAsk}>Send</Button>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="border-t border-stone-800 bg-stone-900 px-3 py-3 flex justify-between items-center text-[10px] font-mono uppercase tracking-wider text-stone-400">
-        <button onClick={() => setActiveTab('routine')} className={`flex flex-col items-center gap-1 ${activeTab === 'routine' ? 'text-emerald-400 font-bold' : ''}`}>
-          <span>📋</span>
-          <span>Routine</span>
-        </button>
-        <button onClick={() => setActiveTab('scanner')} className={`flex flex-col items-center gap-1 ${activeTab === 'scanner' ? 'text-emerald-400 font-bold' : ''}`}>
-          <span>🔍</span>
-          <span>Scanner</span>
-        </button>
-        <button onClick={() => setActiveTab('tracker')} className={`flex flex-col items-center gap-1 ${activeTab === 'tracker' ? 'text-emerald-400 font-bold' : ''}`}>
-          <span>📈</span>
-          <span>Tracker</span>
-        </button>
-        <button onClick={() => setActiveTab('compatibility')} className={`flex flex-col items-center gap-1 ${activeTab === 'compatibility' ? 'text-emerald-400 font-bold' : ''}`}>
-          <span>⚡</span>
-          <span>Check</span>
-        </button>
-        <button onClick={() => setActiveTab('ai')} className={`flex flex-col items-center gap-1 ${activeTab === 'ai' ? 'text-emerald-400 font-bold' : ''}`}>
-          <span>🤖</span>
-          <span>AI Assist</span>
-        </button>
-      </nav>
+        {/* Global Toast Notification Container */}
+        <Toaster />
+      </div>
     </div>
   );
 }
 
-export default App;
