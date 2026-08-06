@@ -123,7 +123,7 @@ export default function App() {
         }
 
         // Check Clerk cloud metadata FIRST (cross-device), then fall back to local storage
-        const clerkDone = !!(clerkUser.unsafeMetadata?.onboardingDone);
+        const clerkDone = !!(clerkUser?.unsafeMetadata?.onboardingDone);
         const localDone = state.profile.onboardingDone;
         const onboardingDone = clerkDone || localDone;
 
@@ -163,16 +163,25 @@ export default function App() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Handle incoming deep links when returning from Google OAuth in Chrome
-    const listener = CapApp.addListener('appUrlOpen', (event) => {
-      if (event.url.includes('/sso-callback') || event.url.includes('__clerk')) {
-        setTab('sso-callback');
+    // Handle incoming deep links safely when returning from Google OAuth in Chrome
+    let listenerPromise: any = null;
+    try {
+      if (typeof window !== 'undefined' && Boolean((window as any).Capacitor)) {
+        listenerPromise = CapApp.addListener('appUrlOpen', (event) => {
+          if (event.url.includes('/sso-callback') || event.url.includes('__clerk')) {
+            setTab('sso-callback');
+          }
+        });
       }
-    });
+    } catch (e) {
+      console.warn('CapApp listener init skipped:', e);
+    }
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      listener.then(l => l.remove());
+      if (listenerPromise && typeof listenerPromise.then === 'function') {
+        listenerPromise.then((l: any) => l?.remove?.()).catch(() => {});
+      }
     };
   }, []);
 
