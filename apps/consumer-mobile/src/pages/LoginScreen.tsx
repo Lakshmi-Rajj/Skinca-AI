@@ -73,13 +73,22 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         const callbackUrl = `${origin}/sso-callback`;
 
-        // If running in Capacitor Android APK, open in Chrome Custom Tab overlay
+        // If running in Capacitor Android APK, open in Chrome Custom Tab overlay via Browser.open
         if (Boolean((window as any).Capacitor)) {
-          await signIn.authenticateWithRedirect({
+          const res = await signIn.create({
             strategy: 'oauth_google',
             redirectUrl: callbackUrl,
-            redirectUrlComplete: callbackUrl,
           });
+          const googleAuthUrl = res.firstFactorVerification?.externalVerificationRedirectUrl;
+          if (googleAuthUrl) {
+            await Browser.open({ url: googleAuthUrl.toString() });
+          } else {
+            await signIn.authenticateWithRedirect({
+              strategy: 'oauth_google',
+              redirectUrl: callbackUrl,
+              redirectUrlComplete: callbackUrl,
+            });
+          }
           return;
         }
 
@@ -322,23 +331,6 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               </button>
             </form>
           )}
-
-          {/* Skip / Continue as Guest Button */}
-          <button
-            onClick={onSkip}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: 12,
-              fontWeight: 600,
-              marginTop: 6,
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
-            Skip for now • Explore as Guest ✦
-          </button>
         </div>
       </div>
     </div>

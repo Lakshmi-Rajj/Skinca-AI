@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser, AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { Toaster, toast } from 'react-hot-toast';
 import { useMobileState } from './hooks/useMobileState';
 import { normalizeClerkUser } from './engines/clerkAuthEngine';
@@ -72,7 +73,19 @@ const BOTTOM_NAV = [
 ];
 
 export default function App() {
-  const { user: clerkUser, isSignedIn, isLoaded } = useUser();
+  let clerkUser: any = null;
+  let isSignedIn: boolean | undefined = false;
+  let isLoaded: boolean = true;
+
+  try {
+    const clerkAuth = useUser();
+    clerkUser = clerkAuth.user;
+    isSignedIn = clerkAuth.isSignedIn;
+    isLoaded = clerkAuth.isLoaded;
+  } catch (e) {
+    console.warn('Clerk useUser context safely caught on init:', e);
+  }
+
   const state = useMobileState();
 
   const [tab, setTab] = useState<Tab>(() => {
@@ -168,6 +181,7 @@ export default function App() {
     try {
       if (typeof window !== 'undefined' && Boolean((window as any).Capacitor)) {
         listenerPromise = CapApp.addListener('appUrlOpen', (event) => {
+          try { Browser.close().catch(() => {}); } catch (e) {}
           if (event.url.includes('/sso-callback') || event.url.includes('__clerk')) {
             setTab('sso-callback');
           }
