@@ -73,12 +73,23 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         const callbackUrl = `${origin}/sso-callback`;
 
-        // If running in Capacitor Android APK, use custom app scheme to route directly back to installed app
+        // If running in Capacitor Android APK, use Browser.open with valid https redirectUrl
         if (Boolean((window as any).Capacitor)) {
-          const nativeCallbackUrl = 'com.skinca.ai://sso-callback';
+          const appCallbackUrl = 'https://skincare-ai-eta.vercel.app/sso-callback';
+          
+          // Listen for browser navigation to sso-callback and auto-close overlay tab
+          const pageListener = await Browser.addListener('browserPageLoaded', async (info) => {
+            if (info.url.includes('/sso-callback') || info.url.includes('__clerk')) {
+              try {
+                await Browser.close();
+                pageListener.remove();
+              } catch (e) {}
+            }
+          });
+
           const res = await signIn.create({
             strategy: 'oauth_google',
-            redirectUrl: nativeCallbackUrl,
+            redirectUrl: appCallbackUrl,
           });
           const googleAuthUrl = res.firstFactorVerification?.externalVerificationRedirectUrl;
           if (googleAuthUrl) {
@@ -86,8 +97,8 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           } else {
             await signIn.authenticateWithRedirect({
               strategy: 'oauth_google',
-              redirectUrl: nativeCallbackUrl,
-              redirectUrlComplete: nativeCallbackUrl,
+              redirectUrl: appCallbackUrl,
+              redirectUrlComplete: appCallbackUrl,
             });
           }
           return;
