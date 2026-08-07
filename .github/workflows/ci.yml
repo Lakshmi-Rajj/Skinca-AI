@@ -20,10 +20,12 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Dependencies (including devDependencies)
+      - name: Install Dependencies
         working-directory: apps/consumer-mobile
-        run: npm install --include=dev
+        run: npm install
+        env:
+          NODE_ENV: development
 
       - name: Build Vite Production Bundle
         working-directory: apps/consumer-mobile
-        run: npm run build
+        run: ./node_modules/.bin/vite build
