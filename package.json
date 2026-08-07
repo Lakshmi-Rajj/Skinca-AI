@@ -1,31 +1,13 @@
 {
-  "name": "skincare-platform-monorepo",
+  "name": "skinca-ai",
   "version": "1.0.0",
   "private": true,
-  "description": "B2B SaaS Multi-Tenant Skincare Recommendation Platform Monorepo",
+  "description": "Skinca AI — Personalized Skincare Mobile App",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
-    "prepare": "husky install",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "prisma:generate": "pnpm --filter @platform/database-client prisma:generate",
-    "prisma:migrate": "pnpm --filter @platform/database-client prisma:migrate",
-    "prisma:seed": "pnpm --filter @platform/database-client prisma:seed"
-  },
-  "devDependencies": {
-    "husky": "^8.0.3",
-    "lint-staged": "^15.2.2",
-    "prettier": "^3.2.5",
-    "turbo": "^1.13.0",
-    "typescript": "^5.4.5"
+    "build": "cd apps/consumer-mobile && npm install && npx vite build",
+    "dev": "cd apps/consumer-mobile && npm run dev"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=9.0.0"
-  },
-  "packageManager": "pnpm@9.1.0"
+    "node": ">=20.0.0"
+  }
 }

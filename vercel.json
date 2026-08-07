@@ -1,0 +1,15 @@
+{
+  "buildCommand": "cd apps/consumer-mobile && npm install && npx vite build",
+  "outputDirectory": "apps/consumer-mobile/dist",
+  "installCommand": "echo 'skip root install'",
+  "rewrites": [
+    {
+      "source": "/sso-callback",
+      "destination": "/sso-callback.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
