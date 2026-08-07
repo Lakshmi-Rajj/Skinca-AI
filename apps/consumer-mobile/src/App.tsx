@@ -182,7 +182,17 @@ export default function App() {
       if (typeof window !== 'undefined' && Boolean((window as any).Capacitor)) {
         listenerPromise = CapApp.addListener('appUrlOpen', (event) => {
           try { Browser.close().catch(() => {}); } catch (e) {}
-          if (event.url.includes('/sso-callback') || event.url.includes('__clerk')) {
+
+          // Handle com.skinca.ai://sso-callback?... deep link from Vercel OAuth redirect
+          if (event.url.includes('sso-callback') || event.url.includes('__clerk')) {
+            // Extract the query string from the deep link URL
+            const urlObj = new URL(event.url);
+            const params = urlObj.search; // e.g. ?code=...&__clerk_status=...
+
+            // Patch window.location so AuthenticateWithRedirectCallback can process the token
+            if (params) {
+              window.history.replaceState({}, '', '/sso-callback' + params);
+            }
             setTab('sso-callback');
           }
         });
