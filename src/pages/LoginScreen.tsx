@@ -78,16 +78,6 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     setLoading(true);
     setErrorMsg(null);
 
-    // If Clerk already has a valid session (loaded late with stale session),
-    // just advance directly — no need to re-open OAuth browser
-    if (isLoaded && isSignedIn && clerkUser) {
-      const normUser = normalizeClerkUser(clerkUser);
-      setTimeout(() => {
-        onLoginSuccess({ email: normUser.email, name: normUser.fullName, avatarUrl: normUser.imageUrl });
-      }, 400);
-      return;
-    }
-
     try {
       if (signIn) {
         const isCapacitorOrLocalhost = typeof window !== 'undefined' && (
@@ -296,13 +286,13 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           {/* Google (Gmail) Sign-In Button */}
           <button
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={loading || !signIn}
             style={{
               width: '100%',
               padding: '14px 20px',
               borderRadius: 30,
               border: 'none',
-              background: '#ffffff',
+              background: signIn ? '#ffffff' : 'rgba(255,255,255,0.5)',
               color: '#111111',
               fontWeight: 800,
               fontSize: 14,
@@ -310,9 +300,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 12,
-              cursor: 'pointer',
+              cursor: signIn ? 'pointer' : 'not-allowed',
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              transition: 'transform 0.15s active',
+              transition: 'all 0.2s',
+              opacity: signIn ? 1 : 0.7,
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -321,7 +312,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2.0 10.05.0 12s.46 3.8 1.27 5.42l4.01-3.15z" />
               <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
             </svg>
-            {loading ? 'Authenticating...' : 'Continue with Google (Gmail)'}
+            {loading ? 'Authenticating...' : !signIn ? 'Preparing...' : 'Continue with Google (Gmail)'}
           </button>
 
           {/* Email / Password Sign-In Toggle */}
