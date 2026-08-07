@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/sso-callback",
-      "destination": "/sso-callback.html"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

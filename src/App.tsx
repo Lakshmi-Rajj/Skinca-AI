@@ -73,17 +73,35 @@ const BOTTOM_NAV = [
   { id: 'profile', label: 'Profile' },
 ];
 
-// SSO Callback screen with 6-second timeout fallback
+// SSO Callback screen — handles both web and Android APK deep-link flows
 function SSOCallbackScreen({ onTimeout }: { onTimeout: () => void }) {
   const [timedOut, setTimedOut] = React.useState(false);
+  const isAndroid = React.useMemo(() => /Android/i.test(navigator.userAgent), []);
 
   React.useEffect(() => {
-    const t = setTimeout(() => {
-      setTimedOut(true);
-      onTimeout();
-    }, 6000);
-    return () => clearTimeout(t);
-  }, [onTimeout]);
+    if (isAndroid) {
+      // Android Chrome (opened from APK via Browser.open) — trigger native deep-link
+      const nativeUrl = 'com.skinca.ai://sso-callback' + window.location.search + window.location.hash;
+      window.location.href = nativeUrl;
+      // If APK not installed, fall back to login after 2.5s
+      const t = setTimeout(() => { setTimedOut(true); onTimeout(); }, 2500);
+      return () => clearTimeout(t);
+    } else {
+      // Desktop / iOS: give Clerk plenty of time to process the handshake
+      const t = setTimeout(() => { setTimedOut(true); onTimeout(); }, 25000);
+      return () => clearTimeout(t);
+    }
+  }, [isAndroid, onTimeout]);
+
+  if (isAndroid) {
+    return (
+      <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a1210', color: '#ffffff', fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid rgba(110, 231, 183, 0.2)', borderTopColor: '#6ee7b7', animation: 'spin 0.8s linear infinite', marginBottom: 16 }} />
+        <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+        <span style={{ fontSize: 16, fontWeight: 700 }}>Opening Skinca AI...</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a1210', color: '#ffffff', fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
@@ -104,6 +122,7 @@ function SSOCallbackScreen({ onTimeout }: { onTimeout: () => void }) {
     </div>
   );
 }
+
 
 export default function App() {
   let clerkUser: any = null;
