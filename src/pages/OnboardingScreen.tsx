@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import type { UserProfile, SkinType, SkinConcern, SensitivityLevel, AgeRange, Climate, BudgetTier, Gender } from '../types/mobile.types';
+import type { UserProfile, SkinType, SkinConcern, SensitivityLevel, AgeRange, Climate, Gender } from '../types/mobile.types';
 import { CURRENCIES, formatCurrency, type Currency } from '../utils/currencyUtils';
+import {
+  IconCamera, IconBookOpen, IconUser, IconSparkles, IconDroplets,
+  IconActivity, IconLeaf, IconShieldCheck, IconShield, IconCircleDot,
+  IconAlertTriangle, IconClock, IconSearch, IconMeh, IconSun, IconCheck,
+} from '../components/Icons';
 
 interface Props {
   onComplete: (data: Partial<UserProfile>) => void;
@@ -56,7 +61,6 @@ export function OnboardingScreen({ onComplete }: Props) {
 
       {/* User Signed In Confirmation Banner */}
       {isSignedIn && clerkUser && (
-
         <div style={{
           background: '#f0fdf4',
           border: '1px solid #bbf7d0',
@@ -65,15 +69,15 @@ export function OnboardingScreen({ onComplete }: Props) {
           marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           boxShadow: '0 2px 12px rgba(16, 185, 129, 0.08)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {clerkUser.imageUrl ? (
               <img src={clerkUser.imageUrl} alt="Profile Avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #16a34a' }} />
             ) : (
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#16a34a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900 }}>
-                ✓
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#16a34a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconCheck size={16} color="#fff" strokeWidth={3} />
               </div>
             )}
             <div>
@@ -85,15 +89,14 @@ export function OnboardingScreen({ onComplete }: Props) {
               </div>
             </div>
           </div>
-          <span style={{ fontSize: 10, fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: 12, border: '1px solid #86efac', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            ✓ Verified
+          <span style={{ fontSize: 10, fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '4px 10px', borderRadius: 12, border: '1px solid #86efac', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <IconCheck size={11} color="#15803d" strokeWidth={3} /> Verified
           </span>
         </div>
       )}
 
       {/* STEP 0: Diagnostic Analysis Mode Selection */}
       {step === 0 && (
-
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: '#111', margin: '0 0 6px' }}>Choose Diagnostic Mode</h2>
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 20px', lineHeight: 1.4 }}>How would you like SKINCA to analyze your dermal profile?</p>
@@ -107,7 +110,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                 borderRadius: 16, padding: '16px', cursor: 'pointer', display: 'flex', gap: 14, alignItems: 'center'
               }}
             >
-              <div style={{ fontSize: 32 }}>📸</div>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#eaf2ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <IconCamera size={22} color="#326859" />
+              </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 15, color: '#111' }}>AI Face Scan + Questionnaire Analysis</div>
                 <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Full clinical colorimetry, 3D facial zone map, & automatic metric tracking.</div>
@@ -122,7 +127,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                 borderRadius: 16, padding: '16px', cursor: 'pointer', display: 'flex', gap: 14, alignItems: 'center'
               }}
             >
-              <div style={{ fontSize: 32 }}>📋</div>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#eaf2ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <IconBookOpen size={22} color="#326859" />
+              </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 15, color: '#111' }}>Questionnaire Analysis Only</div>
                 <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Privacy-focused baseline diagnostic. Zero camera scans required.</div>
@@ -139,10 +146,10 @@ export function OnboardingScreen({ onComplete }: Props) {
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 20px', lineHeight: 1.4 }}>Hormones & skin thickness directly impact sebum and barrier biology.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { value: 'FEMALE' as Gender, label: 'Female', icon: '👩', desc: 'Estrogen dynamics & pregnancy safety' },
-              { value: 'MALE' as Gender, label: 'Male', icon: '👨', desc: 'Thicker skin, higher sebum & shaving care' },
-              { value: 'NON_BINARY' as Gender, label: 'Non-Binary', icon: '⚧', desc: 'Tailored analysis without assumptions' },
-              { value: 'PREFER_NOT_TO_SAY' as Gender, label: 'Prefer Not To Say', icon: '✨', desc: 'Standard clinical skin type analysis' },
+              { value: 'FEMALE' as Gender, label: 'Female', icon: <IconUser size={20} color="#326859" />, desc: 'Estrogen dynamics & pregnancy safety' },
+              { value: 'MALE' as Gender, label: 'Male', icon: <IconUser size={20} color="#326859" />, desc: 'Thicker skin, higher sebum & shaving care' },
+              { value: 'NON_BINARY' as Gender, label: 'Non-Binary', icon: <IconSparkles size={20} color="#326859" />, desc: 'Tailored analysis without assumptions' },
+              { value: 'PREFER_NOT_TO_SAY' as Gender, label: 'Prefer Not To Say', icon: <IconShieldCheck size={20} color="#326859" />, desc: 'Standard clinical skin type analysis' },
             ].map(o => (
               <div
                 key={o.value}
@@ -150,10 +157,13 @@ export function OnboardingScreen({ onComplete }: Props) {
                 style={{
                   background: gender === o.value ? '#f0faf7' : '#ffffff',
                   border: gender === o.value ? '2px solid #326859' : '1px solid #e5e7eb',
-                  borderRadius: 16, padding: '14px', cursor: 'pointer', textAlign: 'center'
+                  borderRadius: 16, padding: '14px', cursor: 'pointer', textAlign: 'center',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center'
                 }}
               >
-                <div style={{ fontSize: 28, marginBottom: 4 }}>{o.icon}</div>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#eaf2ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                  {o.icon}
+                </div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#111' }}>{o.label}</div>
                 <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{o.desc}</div>
               </div>
@@ -169,11 +179,11 @@ export function OnboardingScreen({ onComplete }: Props) {
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 20px', lineHeight: 1.4 }}>This is the foundation of your clinical analysis.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { value: 'DRY' as SkinType, label: 'Dry', icon: '🌵', desc: 'Tight, flaky, craves moisture' },
-              { value: 'OILY' as SkinType, label: 'Oily', icon: '💧', desc: 'Shiny, prone to breakouts' },
-              { value: 'COMBINATION' as SkinType, label: 'Combination', icon: '⚖️', desc: 'Oily T-zone, dry cheeks' },
-              { value: 'SENSITIVE' as SkinType, label: 'Sensitive', icon: '🌸', desc: 'Easily irritated, reactive' },
-              { value: 'NORMAL' as SkinType, label: 'Normal', icon: '✨', desc: 'Balanced, few concerns' },
+              { value: 'DRY' as SkinType, label: 'Dry', icon: <IconSun size={20} color="#f59e0b" />, desc: 'Tight, flaky, craves moisture' },
+              { value: 'OILY' as SkinType, label: 'Oily', icon: <IconDroplets size={20} color="#326859" />, desc: 'Shiny, prone to breakouts' },
+              { value: 'COMBINATION' as SkinType, label: 'Combination', icon: <IconActivity size={20} color="#326859" />, desc: 'Oily T-zone, dry cheeks' },
+              { value: 'SENSITIVE' as SkinType, label: 'Sensitive', icon: <IconLeaf size={20} color="#ef4444" />, desc: 'Easily irritated, reactive' },
+              { value: 'NORMAL' as SkinType, label: 'Normal', icon: <IconShieldCheck size={20} color="#326859" />, desc: 'Balanced, few concerns' },
             ].map(o => (
               <div
                 key={o.value}
@@ -184,7 +194,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                   borderRadius: 14, padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12
                 }}
               >
-                <span style={{ fontSize: 24 }}>{o.icon}</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {o.icon}
+                </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>{o.label}</div>
                   <div style={{ fontSize: 11, color: '#666' }}>{o.desc}</div>
@@ -202,12 +214,12 @@ export function OnboardingScreen({ onComplete }: Props) {
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 20px', lineHeight: 1.4 }}>We will prioritize active ingredients targeting this.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { value: 'acne' as SkinConcern, label: 'Acne & Blemishes', icon: '🔴' },
-              { value: 'hyperpigmentation' as SkinConcern, label: 'Dark Spots & Pigment', icon: '🟤' },
-              { value: 'redness' as SkinConcern, label: 'Redness & Rosacea', icon: '🌹' },
-              { value: 'wrinkles' as SkinConcern, label: 'Fine Lines & Aging', icon: '⏳' },
-              { value: 'dryness' as SkinConcern, label: 'Dehydration & Dullness', icon: '💦' },
-              { value: 'pores' as SkinConcern, label: 'Enlarged Pores', icon: '🔍' },
+              { value: 'acne' as SkinConcern, label: 'Acne & Blemishes', icon: <IconAlertTriangle size={20} color="#ef4444" /> },
+              { value: 'hyperpigmentation' as SkinConcern, label: 'Dark Spots & Pigment', icon: <IconCircleDot size={20} color="#f59e0b" /> },
+              { value: 'redness' as SkinConcern, label: 'Redness & Rosacea', icon: <IconActivity size={20} color="#ef4444" /> },
+              { value: 'wrinkles' as SkinConcern, label: 'Fine Lines & Aging', icon: <IconClock size={20} color="#326859" /> },
+              { value: 'dryness' as SkinConcern, label: 'Dehydration & Dullness', icon: <IconDroplets size={20} color="#326859" /> },
+              { value: 'pores' as SkinConcern, label: 'Enlarged Pores', icon: <IconSearch size={20} color="#326859" /> },
             ].map(o => (
               <div
                 key={o.value}
@@ -215,10 +227,13 @@ export function OnboardingScreen({ onComplete }: Props) {
                 style={{
                   background: primaryConcern === o.value ? '#f0faf7' : '#ffffff',
                   border: primaryConcern === o.value ? '2px solid #326859' : '1px solid #e5e7eb',
-                  borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'center'
+                  borderRadius: 14, padding: '14px', cursor: 'pointer', textAlign: 'center',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center'
                 }}
               >
-                <div style={{ fontSize: 26, marginBottom: 4 }}>{o.icon}</div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                  {o.icon}
+                </div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#111' }}>{o.label}</div>
               </div>
             ))}
@@ -233,9 +248,9 @@ export function OnboardingScreen({ onComplete }: Props) {
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 20px', lineHeight: 1.4 }}>Sets safe active ingredient concentration thresholds.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { value: 'LOW' as SensitivityLevel, label: 'Low Sensitivity', icon: '💪', desc: 'Tolerates active acids & retinoids well' },
-              { value: 'MODERATE' as SensitivityLevel, label: 'Moderate Sensitivity', icon: '😐', desc: 'Occasional mild flushing or tingling' },
-              { value: 'HIGH' as SensitivityLevel, label: 'High Sensitivity', icon: '⚠️', desc: 'Very reactive — requires fragrance-free & soothing actives' },
+              { value: 'LOW' as SensitivityLevel, label: 'Low Sensitivity', icon: <IconShieldCheck size={20} color="#326859" />, desc: 'Tolerates active acids & retinoids well' },
+              { value: 'MODERATE' as SensitivityLevel, label: 'Moderate Sensitivity', icon: <IconMeh size={20} color="#f59e0b" />, desc: 'Occasional mild flushing or tingling' },
+              { value: 'HIGH' as SensitivityLevel, label: 'High Sensitivity', icon: <IconAlertTriangle size={20} color="#ef4444" />, desc: 'Very reactive — requires fragrance-free & soothing actives' },
             ].map(o => (
               <div
                 key={o.value}
@@ -246,7 +261,9 @@ export function OnboardingScreen({ onComplete }: Props) {
                   borderRadius: 14, padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12
                 }}
               >
-                <span style={{ fontSize: 24 }}>{o.icon}</span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {o.icon}
+                </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>{o.label}</div>
                   <div style={{ fontSize: 11, color: '#666' }}>{o.desc}</div>
@@ -283,19 +300,22 @@ export function OnboardingScreen({ onComplete }: Props) {
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 8 }}>Climate Environment</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {[
-                { value: 'TEMPERATE' as Climate, label: 'Temperate 🌤️' },
-                { value: 'HUMID' as Climate, label: 'Humid 🌴' },
-                { value: 'DRY' as Climate, label: 'Dry / Arid 🏜️' },
-                { value: 'COLD' as Climate, label: 'Cold / Wind ❄️' },
+                { value: 'TEMPERATE' as Climate, label: 'Temperate', icon: <IconSun size={16} color="#f59e0b" /> },
+                { value: 'HUMID' as Climate, label: 'Humid', icon: <IconDroplets size={16} color="#326859" /> },
+                { value: 'DRY' as Climate, label: 'Dry / Arid', icon: <IconSun size={16} color="#ef4444" /> },
+                { value: 'COLD' as Climate, label: 'Cold / Wind', icon: <IconShield size={16} color="#3b82f6" /> },
               ].map(c => (
                 <button
                   key={c.value}
                   onClick={() => setClimate(c.value)}
                   style={{
                     padding: '12px', borderRadius: 12, border: climate === c.value ? '2px solid #326859' : '1px solid #e5e7eb',
-                    background: climate === c.value ? '#f0faf7' : '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', color: '#111'
+                    background: climate === c.value ? '#f0faf7' : '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', color: '#111',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                   }}
-                >{c.label}</button>
+                >
+                  {c.icon} {c.label}
+                </button>
               ))}
             </div>
           </div>
@@ -321,13 +341,15 @@ export function OnboardingScreen({ onComplete }: Props) {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: 24 }}>{c.flag}</span>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0faf7', border: '1px solid #b3ebd8', color: '#326859', fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {c.symbol}
+                    </div>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 14, color: '#111' }}>{c.name} ({c.symbol})</div>
                       <div style={{ fontSize: 11, color: '#777' }}>ISO Code: {c.code}</div>
                     </div>
                   </div>
-                  {currency === cKey && <span style={{ color: '#326859', fontWeight: 800, fontSize: 16 }}>✓</span>}
+                  {currency === cKey && <IconCheck size={18} color="#326859" strokeWidth={3} />}
                 </div>
               );
             })}
@@ -378,7 +400,9 @@ export function OnboardingScreen({ onComplete }: Props) {
           <p style={{ fontSize: 13, color: '#666', margin: '0 0 20px', lineHeight: 1.4 }}>Please review and confirm data collection terms to initialize your clinical diagnostic.</p>
 
           <div style={{ background: '#f0faf7', borderRadius: 16, padding: '16px 18px', border: '1px solid #b3ebd8', marginBottom: 20 }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#326859', marginBottom: 6 }}>🔒 Clinical Data Handling Commitment</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#326859', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <IconShieldCheck size={18} color="#326859" /> Clinical Data Handling Commitment
+            </div>
             <div style={{ fontSize: 12, color: '#444', lineHeight: 1.5 }}>
               • All colorimetric face scans are processed 100% on-device or via encrypted HIPAA-compliant endpoints.<br />
               • Your dermal diagnostic responses are strictly used to recommend compatible ingredients and will never be shared with 3rd parties.
@@ -418,8 +442,10 @@ export function OnboardingScreen({ onComplete }: Props) {
           <button
             onClick={handleFinish}
             disabled={!hasConsented}
-            style={{ flex: 1, padding: '14px 20px', borderRadius: 30, border: 'none', background: hasConsented ? '#326859' : '#ccc', color: '#fff', fontWeight: 800, fontSize: 14, cursor: hasConsented ? 'pointer' : 'not-allowed' }}
-          >Finish & Build Clinical Profile ✦</button>
+            style={{ flex: 1, padding: '14px 20px', borderRadius: 30, border: 'none', background: hasConsented ? '#326859' : '#ccc', color: '#fff', fontWeight: 800, fontSize: 14, cursor: hasConsented ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            Finish & Build Clinical Profile <IconSparkles size={16} color="#fff" />
+          </button>
         )}
       </div>
     </div>
