@@ -154,6 +154,16 @@ export default function App() {
   const [showProModal, setShowProModal] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  // Track if Clerk loaded AFTER the login page was already shown (>4s boot)
+  // When true, don't auto-route from login — let the user explicitly tap sign-in
+  const appBootTime = React.useRef(Date.now());
+  const [clerkLoadedLate, setClerkLoadedLate] = useState(false);
+
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    const elapsed = Date.now() - appBootTime.current;
+    if (elapsed > 3500) setClerkLoadedLate(true); // Clerk was slow — login page was already visible
+  }, [isLoaded]);
 
 
   // Handles session expiry & Clerk Cloud Metadata onboarding sync
@@ -181,6 +191,10 @@ export default function App() {
       });
 
       if (tab === 'login' || tab === 'sso-callback') {
+        // If Clerk loaded LATE (after 4s timeout, login page was already visible to the user),
+        // do NOT auto-route — wait for user to explicitly tap "Continue with Google"
+        if (clerkLoadedLate && tab === 'login') return;
+
         toast.success(`Welcome, ${norm.fullName}! Signed in successfully.`, {
           id: 'auth-success-toast',
           duration: 4500,
@@ -244,7 +258,7 @@ export default function App() {
         }
       }
     }
-  }, [isLoaded, isSignedIn, clerkUser, tab]);
+  }, [isLoaded, isSignedIn, clerkUser, tab, clerkLoadedLate]);
 
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' && (window.innerWidth <= 768 || Boolean((window as any).Capacitor))

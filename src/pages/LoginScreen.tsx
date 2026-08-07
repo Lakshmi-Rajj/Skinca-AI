@@ -78,6 +78,16 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     setLoading(true);
     setErrorMsg(null);
 
+    // If Clerk already has a valid session (loaded late with stale session),
+    // just advance directly — no need to re-open OAuth browser
+    if (isLoaded && isSignedIn && clerkUser) {
+      const normUser = normalizeClerkUser(clerkUser);
+      setTimeout(() => {
+        onLoginSuccess({ email: normUser.email, name: normUser.fullName, avatarUrl: normUser.imageUrl });
+      }, 400);
+      return;
+    }
+
     try {
       if (signIn) {
         const isCapacitorOrLocalhost = typeof window !== 'undefined' && (
