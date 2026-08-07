@@ -50,7 +50,7 @@ function calculateRealProgress(tracker: State['tracker'], lastScanResult: State[
           const pmBonus = entry.pmCompleted ? 3 : 0;
           const irrPenalty = (entry.irritationLevel || 0) * 4;
           dayScore = Math.max(30, Math.min(100, baseline + amBonus + pmBonus - irrPenalty));
-        } else if (iso === lastScanResult.timestamp?.slice(0, 10) || (w === 3 && d === 6)) {
+        } else if (iso === (lastScanResult?.timestamp?.slice(0, 10) ?? null) || (w === 3 && d === 6)) {
           // Current scan day
           dayScore = baseline;
         }

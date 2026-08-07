@@ -51,7 +51,7 @@ export function DiscoverCatalogScreen({ state }: { state: State }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {display.map(p => {
               const savedStatus = isProductSaved(p.id);
-              const numPrice = parseInt(p.priceRange.replace(/[^0-9]/g, ''), 10) || 899;
+              const numPrice = parseInt(p.priceRange.replace(/[^0-9]/g, ''), 10) || 0;
               const formattedPrice = formatCurrency(numPrice, profile.currency);
 
               return (
