@@ -1,9 +1,0 @@
-{
-  "appId": "com.skincare.companion",
-  "appName": "Skincare Companion",
-  "webDir": "dist",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
-  }
-}

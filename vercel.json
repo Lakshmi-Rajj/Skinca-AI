@@ -1,6 +1,4 @@
 {
-  "buildCommand": "npm --prefix apps/consumer-mobile install --include=dev && npm --prefix apps/consumer-mobile run build",
-  "outputDirectory": "apps/consumer-mobile/dist",
   "rewrites": [
     {
       "source": "/sso-callback",

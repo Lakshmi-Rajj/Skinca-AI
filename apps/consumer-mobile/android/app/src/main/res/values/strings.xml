@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Skincare Companion</string>
-    <string name="title_activity_main">Skincare Companion</string>
-    <string name="package_name">com.skincare.companion</string>
-    <string name="custom_url_scheme">com.skincare.companion</string>
-</resources>
