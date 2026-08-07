@@ -73,6 +73,38 @@ const BOTTOM_NAV = [
   { id: 'profile', label: 'Profile' },
 ];
 
+// SSO Callback screen with 6-second timeout fallback
+function SSOCallbackScreen({ onTimeout }: { onTimeout: () => void }) {
+  const [timedOut, setTimedOut] = React.useState(false);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      setTimedOut(true);
+      onTimeout();
+    }, 6000);
+    return () => clearTimeout(t);
+  }, [onTimeout]);
+
+  return (
+    <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a1210', color: '#ffffff', fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
+      {!timedOut && (
+        <>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid rgba(110, 231, 183, 0.2)', borderTopColor: '#6ee7b7', animation: 'spin 0.8s linear infinite', marginBottom: 16 }} />
+          <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Finalizing Google Authentication...</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6, marginBottom: 20 }}>Completing secure token handshake with Clerk</span>
+          <AuthenticateWithRedirectCallback
+            afterSignInUrl={window.location.origin}
+            afterSignUpUrl={window.location.origin + '?new_signup=1'}
+            signInForceRedirectUrl={window.location.origin}
+            signUpForceRedirectUrl={window.location.origin + '?new_signup=1'}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   let clerkUser: any = null;
   let isSignedIn: boolean | undefined = false;
@@ -103,6 +135,19 @@ export default function App() {
   // Handles session expiry & Clerk Cloud Metadata onboarding sync
   useEffect(() => {
     if (!isLoaded) return;
+
+    // ── FAST PATH: isSignedIn is true but we're stuck on sso-callback (web/Vercel) ──
+    // clerkUser may not have loaded yet — don't wait, navigate immediately using local state
+    if (isSignedIn && tab === 'sso-callback' && !clerkUser) {
+      const localDone = state.profile.onboardingDone;
+      const isNewSignup = typeof window !== 'undefined' && window.location.search.includes('new_signup=1');
+      window.history.replaceState({}, '', '/');
+      if (isNewSignup) { setTab('onboarding'); return; }
+      const next = localDone ? 'dashboard' : 'onboarding';
+      setTab(next);
+      if (next === 'dashboard') setUnlocked(true);
+      return;
+    }
 
     if (isSignedIn && clerkUser) {
       const norm = normalizeClerkUser(clerkUser);
@@ -455,18 +500,7 @@ export default function App() {
         {/* ─── MAIN CONTENT VIEWPORT ─── */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
           {tab === 'sso-callback' && (
-            <div style={{ minHeight: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0a1210', color: '#ffffff', fontFamily: 'system-ui, sans-serif', padding: 24, textAlign: 'center' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid rgba(110, 231, 183, 0.2)', borderTopColor: '#6ee7b7', animation: 'spin 0.8s linear infinite', marginBottom: 16 }} />
-              <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#ffffff' }}>Finalizing Google Authentication...</span>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6, marginBottom: 20 }}>Completing secure token handshake with Clerk</span>
-              <AuthenticateWithRedirectCallback
-                afterSignInUrl={window.location.origin}
-                afterSignUpUrl={window.location.origin + '?new_signup=1'}
-                signInForceRedirectUrl={window.location.origin}
-                signUpForceRedirectUrl={window.location.origin + '?new_signup=1'}
-              />
-            </div>
+            <SSOCallbackScreen onTimeout={() => setTab('login')} />
           )}
 
           {tab === 'login'        && (
