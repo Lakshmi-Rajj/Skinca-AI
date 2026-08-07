@@ -76,20 +76,12 @@ class ErrorBoundary extends Component<Props, State> {
 
 const container = document.getElementById('root');
 
-// On skinca-ai.vercel.app, route Clerk JS through our Vercel proxy (__clerk → clerk.accounts.dev)
-// This avoids the clerk.skinca-ai.vercel.app subdomain issue on Vercel's PSL domain
-const isVercelDeployment = typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app');
-const clerkProxyUrl = isVercelDeployment ? `${window.location.origin}/__clerk` : undefined;
-
 if (container) {
   const root = createRoot(container);
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <ClerkProvider
-          publishableKey={CLERK_PUBLISHABLE_KEY || 'pk_test_bGVuaWVudC1zdW5iaXJkLTgxLmNsZXJrLmFjY291bnRzLmRldiQ'}
-          proxyUrl={clerkProxyUrl}
-        >
+        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || 'pk_test_bGVuaWVudC1zdW5iaXJkLTgxLmNsZXJrLmFjY291bnRzLmRldiQ'}>
           <App />
         </ClerkProvider>
       </ErrorBoundary>
