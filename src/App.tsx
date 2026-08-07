@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUser, AuthenticateWithRedirectCallback } from '@clerk/clerk-react';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { Toaster, toast } from 'react-hot-toast';
 import { useMobileState } from './hooks/useMobileState';
 import { normalizeClerkUser } from './engines/clerkAuthEngine';
@@ -135,6 +136,16 @@ export default function App() {
           window.history.replaceState({}, '', '/');
         }
 
+        // Check if this is a brand new sign-up (tagged with ?new_signup=1)
+        const isNewSignup = typeof window !== 'undefined' && window.location.search.includes('new_signup=1');
+        if (isNewSignup) {
+          // Clean up the URL param
+          window.history.replaceState({}, '', '/');
+          // Always send new users to onboarding
+          setTab('onboarding');
+          return;
+        }
+
         // Check Clerk cloud metadata FIRST (cross-device), then fall back to local storage
         const clerkDone = !!(clerkUser?.unsafeMetadata?.onboardingDone);
         const localDone = state.profile.onboardingDone;
@@ -208,6 +219,64 @@ export default function App() {
       }
     };
   }, []);
+
+  // Schedule daily 8 AM & 8 PM skincare reminders — only ONCE, after user signs in
+  React.useEffect(() => {
+    if (!isSignedIn) return; // Don't ask for permission until user is signed in
+
+    async function scheduleDailyReminders() {
+      try {
+        if (!Boolean((window as any).Capacitor)) return; // Only in APK, not browser
+
+        // Check if already scheduled — skip if so (don't ask again every session)
+        const pending = await LocalNotifications.getPending();
+        const alreadyScheduled = pending.notifications.some(n => n.id === 801 || n.id === 802);
+        if (alreadyScheduled) return;
+
+        // Request notification permission (only first time after sign-in)
+        const { display } = await LocalNotifications.requestPermissions();
+        if (display !== 'granted') return;
+
+        const now = new Date();
+
+        // Build next 8 AM
+        const morning = new Date(now);
+        morning.setHours(8, 0, 0, 0);
+        if (morning <= now) morning.setDate(morning.getDate() + 1);
+
+        // Build next 8 PM
+        const evening = new Date(now);
+        evening.setHours(20, 0, 0, 0);
+        if (evening <= now) evening.setDate(evening.getDate() + 1);
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 801,
+              title: '✨ Morning Skincare Reminder',
+              body: 'Start your day right — apply your morning routine now! 🌿',
+              schedule: { at: morning, repeats: true, every: 'day' },
+              sound: undefined,
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#326859',
+            },
+            {
+              id: 802,
+              title: '🌙 Evening Skincare Reminder',
+              body: 'Time for your evening skincare routine! Your skin will thank you. 💚',
+              schedule: { at: evening, repeats: true, every: 'day' },
+              sound: undefined,
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#326859',
+            },
+          ],
+        });
+      } catch (e) {
+        console.warn('Notification scheduling skipped:', e);
+      }
+    }
+    scheduleDailyReminders();
+  }, [isSignedIn]); // Triggers only when sign-in state changes to true
 
   function navigate(id: string) {
     setDrawerOpen(false);
@@ -386,9 +455,9 @@ export default function App() {
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6, marginBottom: 20 }}>Completing secure token handshake with Clerk</span>
               <AuthenticateWithRedirectCallback
                 afterSignInUrl={window.location.origin}
-                afterSignUpUrl={window.location.origin}
+                afterSignUpUrl={window.location.origin + '?new_signup=1'}
                 signInForceRedirectUrl={window.location.origin}
-                signUpForceRedirectUrl={window.location.origin}
+                signUpForceRedirectUrl={window.location.origin + '?new_signup=1'}
               />
             </div>
           )}
