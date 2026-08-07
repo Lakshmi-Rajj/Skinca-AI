@@ -38,30 +38,26 @@
   <p>Returning you to Skinca AI</p>
 
   <script>
-    // After Clerk processes the OAuth token on the Vercel page,
-    // redirect back into the installed APK via the custom scheme.
-    // On web browser (non-APK), this is a no-op — Clerk handles it normally.
     (function() {
       var params = window.location.search;
       var hash = window.location.hash;
+      var isAndroid = /Android/i.test(navigator.userAgent);
 
-      // Try to open the native APK via custom scheme deep link
-      var nativeUrl = 'com.skinca.ai://sso-callback' + params + hash;
-
-      // Set a fallback: if the APK is not installed, stay on the web app
-      var fallbackTimer = setTimeout(function() {
-        // If deep link failed (user on browser), redirect to the web app
-        window.location.href = 'https://skinca-ai.vercel.app/' + params + hash;
-      }, 2000);
-
-      // Try the native deep link
-      try {
+      if (isAndroid) {
+        // Android: try to open the installed APK via custom scheme.
+        // If APK is not installed, the fallback timer redirects to the web app.
+        var nativeUrl = 'com.skinca.ai://sso-callback' + params + hash;
+        var fallbackTimer = setTimeout(function() {
+          // APK not installed (or failed to open) — load the React SPA instead
+          window.location.replace('/' + params + hash);
+        }, 2000);
+        // Attempt native deep link (Android will intercept if APK is installed)
         window.location.href = nativeUrl;
-        // If we get here, the deep link was dispatched
-        clearTimeout(fallbackTimer);
-      } catch(e) {
-        clearTimeout(fallbackTimer);
-        window.location.href = 'https://skincare-ai-eta.vercel.app/' + params + hash;
+        // Do NOT clearTimeout — let the timer fire as a safety net
+      } else {
+        // Desktop / iOS browser: skip native link, load React SPA directly
+        // The SPA's AuthenticateWithRedirectCallback will handle the __clerk_handshake
+        window.location.replace('/' + params + hash);
       }
     })();
   </script>
