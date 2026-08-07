@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd apps/consumer-mobile && npm install && npx vite build",
+  "buildCommand": "cd apps/consumer-mobile && npm install --include=dev && npm run build",
   "outputDirectory": "apps/consumer-mobile/dist",
   "installCommand": "echo 'skip root install'",
   "rewrites": [
