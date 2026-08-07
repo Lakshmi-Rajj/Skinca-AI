@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import type { useMobileState } from '../hooks/useMobileState';
 import { getResolvedUserAvatar } from '../utils/avatarUtils';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 type State = ReturnType<typeof useMobileState>;
 
@@ -35,6 +36,181 @@ function getWeeklyProgressScores(tracker: State['tracker'], lastScanResult: Stat
   });
 }
 
+
+
+function ReminderSettings() {
+  const [morningTime, setMorningTime] = useState(() => localStorage.getItem('skinca_morning_time') || '08:00');
+  const [eveningTime, setEveningTime] = useState(() => localStorage.getItem('skinca_evening_time') || '20:00');
+  const [saved, setSaved] = useState(false);
+  const [notifSupported] = useState(() => Boolean((window as any).Capacitor));
+
+  async function handleSave() {
+    localStorage.setItem('skinca_morning_time', morningTime);
+    localStorage.setItem('skinca_evening_time', eveningTime);
+
+    if (notifSupported) {
+      try {
+        // Cancel existing reminders
+        const pending = await LocalNotifications.getPending();
+        const toCancel = pending.notifications.filter(n => n.id === 801 || n.id === 802);
+        if (toCancel.length > 0) await LocalNotifications.cancel({ notifications: toCancel });
+
+        const now = new Date();
+
+        // Parse morning time
+        const [mH, mM] = morningTime.split(':').map(Number);
+        const morning = new Date(now);
+        morning.setHours(mH, mM, 0, 0);
+        if (morning <= now) morning.setDate(morning.getDate() + 1);
+
+        // Parse evening time
+        const [eH, eM] = eveningTime.split(':').map(Number);
+        const evening = new Date(now);
+        evening.setHours(eH, eM, 0, 0);
+        if (evening <= now) evening.setDate(evening.getDate() + 1);
+
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: 801,
+              title: '✨ Morning Skincare Reminder',
+              body: 'Start your day right — apply your morning routine now! 🌿',
+              schedule: { at: morning, repeats: true, every: 'day' },
+              sound: undefined,
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#326859',
+            },
+            {
+              id: 802,
+              title: '🌙 Evening Skincare Reminder',
+              body: 'Time for your evening skincare routine! Your skin will thank you. 💚',
+              schedule: { at: evening, repeats: true, every: 'day' },
+              sound: undefined,
+              smallIcon: 'ic_launcher_round',
+              iconColor: '#326859',
+            },
+          ],
+        });
+      } catch (e) {
+        console.warn('Rescheduling notifications failed:', e);
+      }
+    }
+
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  function formatDisplay(time24: string) {
+    const [h, m] = time24.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  return (
+    <div style={{ background: '#ffffff', borderRadius: 20, padding: '16px 18px', border: '1px solid #eeeeee', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', marginBottom: 16 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <span style={{ fontSize: 20 }}>⏰</span>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#111111' }}>Skincare Reminders</div>
+          <div style={{ fontSize: 11, color: '#888888', marginTop: 1 }}>Set your daily reminder times</div>
+        </div>
+      </div>
+
+      {/* Morning Time Picker */}
+      <div style={{ background: '#f9fbfb', borderRadius: 14, padding: '12px 14px', marginBottom: 10, border: '1px solid #edf4f2' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>🌅</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#111111' }}>Morning Reminder</div>
+              <div style={{ fontSize: 11, color: '#888888' }}>Currently: {formatDisplay(morningTime)}</div>
+            </div>
+          </div>
+          <input
+            type="time"
+            value={morningTime}
+            onChange={e => setMorningTime(e.target.value)}
+            style={{
+              border: '1.5px solid #326859',
+              borderRadius: 10,
+              padding: '6px 10px',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#326859',
+              background: '#ffffff',
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Evening Time Picker */}
+      <div style={{ background: '#f9fbfb', borderRadius: 14, padding: '12px 14px', marginBottom: 14, border: '1px solid #edf4f2' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>🌙</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#111111' }}>Evening Reminder</div>
+              <div style={{ fontSize: 11, color: '#888888' }}>Currently: {formatDisplay(eveningTime)}</div>
+            </div>
+          </div>
+          <input
+            type="time"
+            value={eveningTime}
+            onChange={e => setEveningTime(e.target.value)}
+            style={{
+              border: '1.5px solid #326859',
+              borderRadius: 10,
+              padding: '6px 10px',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#326859',
+              background: '#ffffff',
+              outline: 'none',
+              cursor: 'pointer',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <button
+        onClick={handleSave}
+        style={{
+          width: '100%',
+          padding: '12px',
+          borderRadius: 14,
+          border: 'none',
+          background: saved ? '#22c55e' : '#326859',
+          color: '#ffffff',
+          fontWeight: 800,
+          fontSize: 13,
+          cursor: 'pointer',
+          transition: 'background 0.3s',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+        }}
+      >
+        {saved ? (
+          <><span>✅</span><span>Reminders Saved!</span></>
+        ) : (
+          <><span>💾</span><span>Save Reminder Times</span></>
+        )}
+      </button>
+
+      {!notifSupported && (
+        <div style={{ marginTop: 10, fontSize: 11, color: '#888888', textAlign: 'center' }}>
+          ℹ️ Times saved. Install the app to receive notifications.
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ProfileScreen({ state, onNavigate }: { state: State; onNavigate: (tab: string) => void }) {
   const { profile, weeklyAdherence, savedIds, journal, tracker, lastScanResult, updateProfile } = state;
@@ -247,6 +423,9 @@ export function ProfileScreen({ state, onNavigate }: { state: State; onNavigate:
             </button>
           ))}
         </div>
+
+        {/* ⏰ Reminder Settings Card */}
+        <ReminderSettings />
 
         {/* Sign Out / Reset Session Button */}
         <div style={{ marginTop: 24, marginBottom: 20 }}>

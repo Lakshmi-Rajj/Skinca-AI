@@ -239,14 +239,21 @@ export default function App() {
 
         const now = new Date();
 
-        // Build next 8 AM
+        // Read user's saved times (default: 8 AM and 8 PM)
+        const savedMorning = localStorage.getItem('skinca_morning_time') || '08:00';
+        const savedEvening = localStorage.getItem('skinca_evening_time') || '20:00';
+
+        const [mH, mM] = savedMorning.split(':').map(Number);
+        const [eH, eM] = savedEvening.split(':').map(Number);
+
+        // Build next morning time
         const morning = new Date(now);
-        morning.setHours(8, 0, 0, 0);
+        morning.setHours(mH, mM, 0, 0);
         if (morning <= now) morning.setDate(morning.getDate() + 1);
 
-        // Build next 8 PM
+        // Build next evening time
         const evening = new Date(now);
-        evening.setHours(20, 0, 0, 0);
+        evening.setHours(eH, eM, 0, 0);
         if (evening <= now) evening.setDate(evening.getDate() + 1);
 
         await LocalNotifications.schedule({
