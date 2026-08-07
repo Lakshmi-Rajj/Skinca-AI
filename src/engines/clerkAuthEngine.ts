@@ -5,7 +5,7 @@
 
 export const CLERK_PUBLISHABLE_KEY =
   (import.meta as any).env?.VITE_CLERK_PUBLISHABLE_KEY ||
-  'pk_live_Y2xlcmsuc2tpbmNhLWFpLnZlcmNlbC5hcHAk';
+  'pk_test_bGVuaWVudC1zdW5iaXJkLTgxLmNsZXJrLmFjY291bnRzLmRldiQ';
 
 
 export interface AuthUser {

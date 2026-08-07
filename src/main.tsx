@@ -76,18 +76,12 @@ class ErrorBoundary extends Component<Props, State> {
 
 const container = document.getElementById('root');
 
-const isProductionKey = CLERK_PUBLISHABLE_KEY.startsWith('pk_live_');
-const proxyUrl = isProductionKey ? 'https://skinca-ai.vercel.app/__clerk' : undefined;
-
 if (container) {
   const root = createRoot(container);
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        <ClerkProvider
-          publishableKey={CLERK_PUBLISHABLE_KEY || 'pk_test_bGVuaWVudC1zdW5iaXJkLTgxLmNsZXJrLmFjY291bnRzLmRldiQ'}
-          proxyUrl={proxyUrl}
-        >
+        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || 'pk_test_bGVuaWVudC1zdW5iaXJkLTgxLmNsZXJrLmFjY291bnRzLmRldiQ'}>
           <App />
         </ClerkProvider>
       </ErrorBoundary>
