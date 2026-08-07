@@ -68,14 +68,14 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           window.location.origin.includes('localhost') || Boolean((window as any).Capacitor)
         );
         const origin = isCapacitorOrLocalhost && !window.location.host.includes(':3000')
-          ? 'https://skincare-ai-eta.vercel.app'
+          ? 'https://skinca-ai.vercel.app'
           : window.location.origin;
 
         const callbackUrl = `${origin}/sso-callback`;
 
         // If running in Capacitor Android APK, use Browser.open with valid https redirectUrl
         if (Boolean((window as any).Capacitor)) {
-          const appCallbackUrl = 'https://skincare-ai-eta.vercel.app/sso-callback';
+          const appCallbackUrl = 'https://skinca-ai.vercel.app/sso-callback';
           
           // Listen for browser navigation to sso-callback and auto-close overlay tab
           const pageListener = await Browser.addListener('browserPageLoaded', async (info) => {

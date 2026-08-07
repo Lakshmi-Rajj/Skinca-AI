@@ -81,13 +81,9 @@ if (container) {
   root.render(
     <React.StrictMode>
       <ErrorBoundary>
-        {CLERK_PUBLISHABLE_KEY ? (
-          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-            <App />
-          </ClerkProvider>
-        ) : (
+        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY || 'pk_test_bGVuaWVudC1zdW5iaXJkLTgxLmNsZXJrLmFjY291bnRzLmRldiQ'}>
           <App />
-        )}
+        </ClerkProvider>
       </ErrorBoundary>
     </React.StrictMode>,
   );
