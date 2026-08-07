@@ -1,13 +1,8 @@
 {
-  "name": "skinca-ai",
+  "name": "skinca-ai-root",
   "version": "1.0.0",
   "private": true,
-  "description": "Skinca AI — Personalized Skincare Mobile App",
   "scripts": {
-    "build": "cd apps/consumer-mobile && npm install && npx vite build",
-    "dev": "cd apps/consumer-mobile && npm run dev"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "build": "npm --prefix apps/consumer-mobile install --include=dev && npm --prefix apps/consumer-mobile run build"
   }
 }
