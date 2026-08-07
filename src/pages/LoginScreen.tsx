@@ -20,6 +20,8 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Safety net: if Clerk hasn't loaded within 4s (Android network timeout), show login page anyway
   const [clerkTimedOut, setClerkTimedOut] = useState(false);
+  // Guard: only auto-advance if user explicitly clicked auth, OR Clerk loaded before the 4s timeout
+  const [hasInitiatedAuth, setHasInitiatedAuth] = useState(false);
 
   useEffect(() => {
     if (isLoaded) return; // Clerk loaded normally — no timeout needed
@@ -27,9 +29,12 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     return () => clearTimeout(t);
   }, [isLoaded]);
 
-  // Automatically advance when Clerk OAuth session completes
+  // Auto-advance ONLY when:
+  // 1. Clerk loaded fast (before 4s timeout) — normal case
+  // 2. OR user explicitly clicked "Continue with Google" / email sign-in
+  // This prevents a stale Clerk session found AFTER timeout from silently routing to questionnaire
   useEffect(() => {
-    if (isLoaded && isSignedIn && clerkUser) {
+    if (isLoaded && isSignedIn && clerkUser && (!clerkTimedOut || hasInitiatedAuth)) {
       const normUser = normalizeClerkUser(clerkUser);
       onLoginSuccess({
         email: normUser.email,
@@ -37,11 +42,12 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         avatarUrl: normUser.imageUrl,
       });
     }
-  }, [isLoaded, isSignedIn, clerkUser]);
+  }, [isLoaded, isSignedIn, clerkUser, clerkTimedOut, hasInitiatedAuth]);
 
   // Show spinner ONLY while Clerk is loading AND the 4s safety timeout hasn't fired
   // Also show it when user is already signed in (routing them out)
-  if ((!isLoaded && !clerkTimedOut) || (isSignedIn && clerkUser)) {
+  // Show spinner: while Clerk loads (before 4s) OR once auth is confirmed after user tapped
+  if ((!isLoaded && !clerkTimedOut) || (hasInitiatedAuth && isSignedIn && clerkUser)) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -68,6 +74,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
 
   async function handleGoogleLogin() {
+    setHasInitiatedAuth(true); // user explicitly tapped — allow auto-advance after OAuth
     setLoading(true);
     setErrorMsg(null);
 
@@ -146,6 +153,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
+    setHasInitiatedAuth(true); // user explicitly tapped — allow auto-advance after sign-in
     setLoading(true);
     setErrorMsg(null);
 
