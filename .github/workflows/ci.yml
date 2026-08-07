@@ -11,10 +11,6 @@ jobs:
     name: Build & Verify Consumer Mobile App
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: apps/consumer-mobile
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -25,7 +21,9 @@ jobs:
           node-version: 22
 
       - name: Install Dependencies
+        working-directory: apps/consumer-mobile
         run: npm install
 
       - name: Build Vite Production Bundle
-        run: npm run build
+        working-directory: apps/consumer-mobile
+        run: npx vite build
