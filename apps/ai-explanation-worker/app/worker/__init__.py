@@ -1,1 +1,0 @@
-# SQS Worker Poller Package
