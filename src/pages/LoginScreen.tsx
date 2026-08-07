@@ -18,6 +18,14 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Safety net: if Clerk hasn't loaded within 4s (Android network timeout), show login page anyway
+  const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded) return; // Clerk loaded normally — no timeout needed
+    const t = setTimeout(() => setClerkTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, [isLoaded]);
 
   // Automatically advance when Clerk OAuth session completes
   useEffect(() => {
@@ -31,8 +39,9 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     }
   }, [isLoaded, isSignedIn, clerkUser]);
 
-  // If Clerk is currently verifying session after OAuth redirect, show loading state
-  if (!isLoaded || (isSignedIn && clerkUser)) {
+  // Show spinner ONLY while Clerk is loading AND the 4s safety timeout hasn't fired
+  // Also show it when user is already signed in (routing them out)
+  if ((!isLoaded && !clerkTimedOut) || (isSignedIn && clerkUser)) {
     return (
       <div style={{
         minHeight: '100vh',
