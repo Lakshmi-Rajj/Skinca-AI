@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/__clerk/:path*",
-      "destination": "https://lenient-sunbird-81.clerk.accounts.dev/:path*"
-    },
-    {
       "source": "/sso-callback",
       "destination": "/sso-callback.html"
     },
