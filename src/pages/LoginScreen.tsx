@@ -99,13 +99,18 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       if (Boolean((window as any).Capacitor)) {
         const appCallbackUrl = 'https://skinca-ai.vercel.app/sso-callback';
 
-        // Listen for browser navigation to sso-callback and auto-close overlay tab
-        const pageListener = await Browser.addListener('browserPageLoaded', async (info) => {
-          if (info.url.includes('/sso-callback') || info.url.includes('__clerk')) {
+        // Listen for browser navigation to sso-callback and redirect WebView to process the token
+        const pageListener = await Browser.addListener('browserPageLoaded', async (info: any) => {
+          if (info?.url && info.url.includes('/sso-callback')) {
+            const fullCallbackUrl = info.url; // full URL with Clerk OAuth token params
             try {
               await Browser.close();
               pageListener.remove();
             } catch (e) {}
+            // Navigate the WebView to the callback URL so Clerk can process the OAuth token
+            setTimeout(() => {
+              window.location.href = fullCallbackUrl;
+            }, 300);
           }
         });
 
