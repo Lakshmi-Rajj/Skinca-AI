@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/__clerk/:path*",
+      "destination": "https://clerk.skinca-ai.vercel.app/:path*"
+    },
+    {
       "source": "/sso-callback",
       "destination": "/sso-callback.html"
     },
