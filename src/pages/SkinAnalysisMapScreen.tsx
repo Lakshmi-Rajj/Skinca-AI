@@ -20,7 +20,7 @@ export function SkinAnalysisMapScreen({ state }: { state: State }) {
   const [selectedZone, setSelectedZone] = useState<typeof ZONES[0] | null>(null);
   const { profile, lastScanResult } = state;
 
-  const analysisFaceImage = getResolvedUserAvatar(profile, lastScanResult);
+  const analysisFaceImage = lastScanResult?.capturedFaceImage || getResolvedUserAvatar(profile, lastScanResult);
   const hasScan = lastScanResult !== null;
 
 

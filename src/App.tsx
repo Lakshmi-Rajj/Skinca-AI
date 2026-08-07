@@ -26,11 +26,14 @@ import { LayeringCompatibilityScreen } from './pages/LayeringCompatibilityScreen
 import { MySpaceJournalScreen }        from './pages/MySpaceJournalScreen';
 import { ProfileScreen }               from './pages/ProfileScreen';
 import { ProPaywallModal }             from './components/ProPaywallModal';
+import { ProductDetailScreen }         from './pages/ProductDetailScreen';
+
 
 type Tab =
   | 'sso-callback' | 'login' | 'onboarding' | 'scan' | 'dashboard' | 'map' | 'routine'
   | 'ingredients' | 'shop' | 'tracker' | 'age' | 'chat'
-  | 'rationale' | 'discover' | 'layering' | 'journal' | 'profile' | 'pro';
+  | 'rationale' | 'discover' | 'layering' | 'journal' | 'profile' | 'pro' | 'product-detail';
+
 
 
 const NAV_SCREENS = [
@@ -150,6 +153,8 @@ export default function App() {
   const [unlocked, setUnlocked] = useState<boolean>(false);
   const [showProModal, setShowProModal] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
 
   // Handles session expiry & Clerk Cloud Metadata onboarding sync
   useEffect(() => {
@@ -348,6 +353,44 @@ export default function App() {
     }
     scheduleDailyReminders();
   }, [isSignedIn]); // Triggers only when sign-in state changes to true
+
+  // ── Ask notification permission when user enters onboarding ──────────────
+  React.useEffect(() => {
+    if (tab !== 'onboarding') return;
+
+    async function askNotificationPermission() {
+      try {
+        if (Boolean((window as any).Capacitor)) {
+          // Native Android/iOS — Capacitor LocalNotifications
+          const { display } = await LocalNotifications.requestPermissions();
+          if (display === 'granted') {
+            toast('Reminders enabled — we\'ll keep your routine on track!', {
+              style: { background: '#326859', color: '#fff', borderRadius: '20px', fontWeight: 600 },
+              position: 'top-center',
+              duration: 3000,
+            });
+          }
+        } else if ('Notification' in window && Notification.permission === 'default') {
+          // Web browser — native Notification API
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            toast('Reminders enabled!', {
+              style: { background: '#326859', color: '#fff', borderRadius: '20px', fontWeight: 600 },
+              position: 'top-center',
+              duration: 3000,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Notification permission request skipped:', e);
+      }
+    }
+
+    // Small delay so the onboarding screen is fully visible before the dialog pops
+    const timer = setTimeout(askNotificationPermission, 1500);
+    return () => clearTimeout(timer);
+  }, [tab]);
+
 
   function navigate(id: string) {
     setDrawerOpen(false);
@@ -561,10 +604,19 @@ export default function App() {
           {tab === 'age'         && <SkinAgeDiagnosticScreen state={state} />}
           {tab === 'chat'        && <SkinAIChatScreen state={state} />}
           {tab === 'rationale'   && <RecommendationRationaleScreen state={state} />}
-          {tab === 'discover'    && <DiscoverCatalogScreen state={state} />}
+          {tab === 'discover'    && <DiscoverCatalogScreen state={state} onViewProduct={(id) => { setSelectedProductId(id); setTab('product-detail'); }} />}
+
           {tab === 'layering'    && <LayeringCompatibilityScreen state={state} />}
           {tab === 'journal'     && <MySpaceJournalScreen state={state} />}
           {tab === 'profile'     && <ProfileScreen state={state} onNavigate={setTab as any} />}
+          {tab === 'product-detail' && (() => {
+            const { CATALOG_DATA } = require('./engines/catalog.data');
+            const prod = CATALOG_DATA.find((p: any) => p.id === selectedProductId);
+            return prod
+              ? <ProductDetailScreen product={prod} state={state} onBack={() => setTab('discover')} />
+              : null;
+          })()}
+
         </div>
 
         {/* ─── BOTTOM NAVIGATION BAR ─── */}

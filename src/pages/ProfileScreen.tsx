@@ -23,15 +23,37 @@ function generateWeeklyScores(tracker: State['tracker']): number[] {
 }
 
 function getWeeklyProgressScores(tracker: State['tracker'], lastScanResult: State['lastScanResult']): (number | string)[] {
-  if (!lastScanResult) {
-    return ['—', '—', '—', '—'];
-  }
+  if (!lastScanResult) return ['—', '—', '—', '—'];
   const baseScore = lastScanResult.overallScore;
-  const rawTrackerScores = generateWeeklyScores(tracker);
-  return rawTrackerScores.map((adherence, idx) => {
-    if (idx === 3) return baseScore;
-    const diff = (3 - idx) * 3;
-    const adj = Math.round(baseScore - diff + (adherence * 0.05));
+
+  return Array.from({ length: 4 }, (_, w) => {
+    // w=0 is W1 (3 weeks ago), w=3 is W4 (current week)
+    const weeksAgo = 3 - w;
+
+    // Current week (W4) — always show the real scan score
+    if (w === 3) return baseScore;
+
+    // Past weeks — only show a score if user has real tracker entries that week
+    let hasRealEntries = false;
+    let amCount = 0, pmCount = 0, dayCount = 0;
+    for (let d = 0; d < 7; d++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (weeksAgo * 7 + d));
+      const iso = date.toISOString().slice(0, 10);
+      const entry = tracker.find(t => t.date === iso);
+      if (entry) {
+        hasRealEntries = true;
+        amCount += entry.amCompleted ? 1 : 0;
+        pmCount += entry.pmCompleted ? 1 : 0;
+        dayCount++;
+      }
+    }
+
+    if (!hasRealEntries) return '—';
+
+    // Real adherence-based score for weeks with actual data
+    const adherencePct = dayCount > 0 ? ((amCount + pmCount) / (dayCount * 2)) * 100 : 0;
+    const adj = Math.round(baseScore - (weeksAgo * 2) + (adherencePct * 0.05));
     return Math.max(30, Math.min(99, adj));
   });
 }

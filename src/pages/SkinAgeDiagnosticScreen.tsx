@@ -5,8 +5,9 @@ import { getResolvedUserAvatar } from '../utils/avatarUtils';
 type State = ReturnType<typeof useMobileState>;
 
 export function SkinAgeDiagnosticScreen({ state }: { state: State }) {
-  const { profile, lastScanResult } = state;
-  const ageFaceImage = getResolvedUserAvatar(profile, lastScanResult);
+  // Prefer the actual scanned face image — only fall back to profile avatar if no scan
+  const ageFaceImage = lastScanResult?.capturedFaceImage || getResolvedUserAvatar(profile, lastScanResult);
+
 
 
   const ageMap: Record<string, number> = { '18-24': 21, '25-34': 29, '35-44': 38, '45-54': 48, '55+': 58 };
@@ -80,12 +81,17 @@ export function SkinAgeDiagnosticScreen({ state }: { state: State }) {
         {/* Hero card with face */}
         <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden', marginBottom: 14 }}>
           <div style={{ display: 'flex', gap: 0 }}>
-            {/* Face image */}
-            <img
-              src={ageFaceImage}
-              alt="Skin age analysis"
-              style={{ width: 140, height: 200, objectFit: 'cover', objectPosition: 'top', flexShrink: 0 }}
-            />
+            {ageFaceImage ? (
+              <img
+                src={ageFaceImage}
+                alt="Your scanned face"
+                style={{ width: 140, height: 200, objectFit: 'cover', objectPosition: 'top center', flexShrink: 0 }}
+              />
+            ) : (
+              <div style={{ width: 140, height: 200, background: '#f0faf7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 48 }}>🔬</span>
+              </div>
+            )}
 
             {/* Age info */}
             <div style={{ flex: 1, padding: '20px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
