@@ -5,8 +5,10 @@ import { getResolvedUserAvatar } from '../utils/avatarUtils';
 type State = ReturnType<typeof useMobileState>;
 
 export function SkinAgeDiagnosticScreen({ state }: { state: State }) {
+  const { profile, lastScanResult } = state;
   // Prefer the actual scanned face image — only fall back to profile avatar if no scan
   const ageFaceImage = lastScanResult?.capturedFaceImage || getResolvedUserAvatar(profile, lastScanResult);
+
 
 
 
