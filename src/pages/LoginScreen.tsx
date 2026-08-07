@@ -74,81 +74,69 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
 
   async function handleGoogleLogin() {
-    setHasInitiatedAuth(true); // user explicitly tapped — allow auto-advance after OAuth
+    setHasInitiatedAuth(true);
     setLoading(true);
     setErrorMsg(null);
 
+    // If Clerk SDK hasn't loaded yet, show a clear error instead of silent fail
+    if (!signIn) {
+      setLoading(false);
+      setErrorMsg('Still connecting to auth server. Check your internet and try again in a moment.');
+      return;
+    }
+
     try {
-      if (signIn) {
-        const isCapacitorOrLocalhost = typeof window !== 'undefined' && (
-          window.location.origin.includes('localhost') || Boolean((window as any).Capacitor)
-        );
-        const origin = isCapacitorOrLocalhost && !window.location.host.includes(':3000')
-          ? 'https://skinca-ai.vercel.app'
-          : window.location.origin;
+      const isCapacitorOrLocalhost = typeof window !== 'undefined' && (
+        window.location.origin.includes('localhost') || Boolean((window as any).Capacitor)
+      );
+      const origin = isCapacitorOrLocalhost && !window.location.host.includes(':3000')
+        ? 'https://skinca-ai.vercel.app'
+        : window.location.origin;
 
-        const callbackUrl = `${origin}/sso-callback`;
+      const callbackUrl = `${origin}/sso-callback`;
 
-        // If running in Capacitor Android APK, use Browser.open with valid https redirectUrl
-        if (Boolean((window as any).Capacitor)) {
-          const appCallbackUrl = 'https://skinca-ai.vercel.app/sso-callback';
-          
-          // Listen for browser navigation to sso-callback and auto-close overlay tab
-          const pageListener = await Browser.addListener('browserPageLoaded', async (info) => {
-            if (info.url.includes('/sso-callback') || info.url.includes('__clerk')) {
-              try {
-                await Browser.close();
-                pageListener.remove();
-              } catch (e) {}
-            }
-          });
+      // If running in Capacitor Android APK, use Browser.open with valid https redirectUrl
+      if (Boolean((window as any).Capacitor)) {
+        const appCallbackUrl = 'https://skinca-ai.vercel.app/sso-callback';
 
-          const res = await signIn.create({
+        // Listen for browser navigation to sso-callback and auto-close overlay tab
+        const pageListener = await Browser.addListener('browserPageLoaded', async (info) => {
+          if (info.url.includes('/sso-callback') || info.url.includes('__clerk')) {
+            try {
+              await Browser.close();
+              pageListener.remove();
+            } catch (e) {}
+          }
+        });
+
+        const res = await signIn.create({
+          strategy: 'oauth_google',
+          redirectUrl: appCallbackUrl,
+        });
+        const googleAuthUrl = res.firstFactorVerification?.externalVerificationRedirectURL;
+        if (googleAuthUrl) {
+          await Browser.open({ url: googleAuthUrl.toString() });
+        } else {
+          await signIn.authenticateWithRedirect({
             strategy: 'oauth_google',
             redirectUrl: appCallbackUrl,
+            redirectUrlComplete: appCallbackUrl,
           });
-          const googleAuthUrl = res.firstFactorVerification?.externalVerificationRedirectUrl;
-          if (googleAuthUrl) {
-            await Browser.open({ url: googleAuthUrl.toString() });
-          } else {
-            await signIn.authenticateWithRedirect({
-              strategy: 'oauth_google',
-              redirectUrl: appCallbackUrl,
-              redirectUrlComplete: appCallbackUrl,
-            });
-          }
-          return;
         }
-
-        await signIn.authenticateWithRedirect({
-          strategy: 'oauth_google',
-          redirectUrl: callbackUrl,
-          redirectUrlComplete: callbackUrl,
-        });
         return;
       }
 
-
-      // Standalone simulation fallback
-      setTimeout(() => {
-        setLoading(false);
-        const normUser = normalizeClerkUser({
-          email: 'user@gmail.com',
-          firstName: 'Skinca',
-          lastName: 'Member',
-          externalAccounts: [{ provider: 'oauth_google' }],
-        });
-        onLoginSuccess({
-          email: normUser.email,
-          name: normUser.fullName,
-          avatarUrl: normUser.imageUrl,
-        });
-      }, 700);
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: callbackUrl,
+        redirectUrlComplete: callbackUrl,
+      });
     } catch (err: any) {
       setLoading(false);
       setErrorMsg(err.message || 'Authentication error. Please try signing in again.');
     }
   }
+
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -286,13 +274,13 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           {/* Google (Gmail) Sign-In Button */}
           <button
             onClick={handleGoogleLogin}
-            disabled={loading || !signIn}
+            disabled={loading}
             style={{
               width: '100%',
               padding: '14px 20px',
               borderRadius: 30,
               border: 'none',
-              background: signIn ? '#ffffff' : 'rgba(255,255,255,0.5)',
+              background: '#ffffff',
               color: '#111111',
               fontWeight: 800,
               fontSize: 14,
@@ -300,10 +288,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 12,
-              cursor: signIn ? 'pointer' : 'not-allowed',
+              cursor: loading ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               transition: 'all 0.2s',
-              opacity: signIn ? 1 : 0.7,
+              opacity: loading ? 0.7 : 1,
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
@@ -312,7 +300,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2.0 10.05.0 12s.46 3.8 1.27 5.42l4.01-3.15z" />
               <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
             </svg>
-            {loading ? 'Authenticating...' : !signIn ? 'Preparing...' : 'Continue with Google (Gmail)'}
+            {loading ? 'Authenticating...' : 'Continue with Google (Gmail)'}
           </button>
 
           {/* Email / Password Sign-In Toggle */}
